@@ -1,4 +1,5 @@
 import { By, until } from "selenium-webdriver";
+import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 
 export async function openReview(driver) {
 	// First login as educator
@@ -9,14 +10,15 @@ export async function openReview(driver) {
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
-	await emailField.sendKeys("A9-106816@area9.dk");
+	const assignedAccount = getAccountForTest("Open Review");
+	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
 		until.elementLocated(By.css('input[name="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
-	await passwordField.sendKeys("P@ssw0rd1234");
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
 	const signInButton = await driver.wait(
 		until.elementIsEnabled(driver.findElement(By.id("sign_in"))),

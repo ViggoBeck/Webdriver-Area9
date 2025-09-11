@@ -199,7 +199,38 @@ This document contains the comprehensive test specifications for performance tes
 - Tests are performed on UAT environment: `br.uat.sg.rhapsode.com`
 
 ## User Credentials
-- **Learner**: A9-106821@area9.dk
-- **Educator**: A9-106816@area9.dk / A9-106817@area9.dk
-- **Curator**: A9-106810@area9.dk
-- **Password**: P@ssw0rd1234 (assumed from current implementation)
+
+### **Learner Accounts**
+- A9-106821@area9.dk
+- A9-106822@area9.dk
+- A9-106823@area9.dk
+- A9-106824@area9.dk
+- A9-106825@area9.dk
+- A9-106826@area9.dk
+- A9-106827@area9.dk
+- A9-106828@area9.dk
+- A9-106829@area9.dk
+- A9-106830@area9.dk
+
+### **Educator Accounts**
+- A9-106816@area9.dk
+- A9-106817@area9.dk
+- A9-106818@area9.dk
+- A9-106819@area9.dk
+- A9-106820@area9.dk
+
+### **Curator Accounts**
+- A9-106810@area9.dk
+- A9-106811@area9.dk
+- A9-106812@area9.dk
+- A9-106813@area9.dk
+- a9-106814@area9.dk
+- A9-106815@area9.dk
+
+### **Default Password**
+- **Password**: P@ssw0rd1234 (for all accounts)
+
+### **Account Usage Notes**
+- Multiple accounts per role allow for parallel testing without conflicts
+- Can be used for load testing scenarios
+- Useful for testing different user states or permissions

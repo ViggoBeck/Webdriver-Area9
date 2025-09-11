@@ -1,4 +1,4 @@
-import { Builder } from "selenium-webdriver";
+import { createDriver } from "./utils/driver.js";
 import { loginLearner } from "./workflows/loginLearner.js";
 import { loginEducator } from "./workflows/loginEducator.js";
 import { loginCurator } from "./workflows/loginCurator.js";
@@ -13,6 +13,7 @@ import { openClass } from "./workflows/openClass.js";
 import { createClass } from "./workflows/createClass.js";
 import { deleteClass } from "./workflows/deleteClass.js";
 import { logResult } from "./utils/log.js";
+import { getAccountForTest } from "./utils/accounts.js";
 
 // Priority tests marked with (*) in specifications
 const PRIORITY_TESTS = [
@@ -40,22 +41,24 @@ const ALL_TESTS = [
 
 async function runTests(testSuite, suiteName) {
 	console.log(`\n🚀 Starting ${suiteName}...`);
-	const driver = await new Builder().forBrowser("chrome").build();
+	const driver = await createDriver();
 
 	try {
 		for (const test of testSuite) {
-			console.log(`\n⏳ Running: ${test.name}`);
-			try {
-				const time = await test.func(driver);
-				logResult(test.name, time);
-				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
+		  const assignedAccount = getAccountForTest(test.name);
+		  console.log(`\n⏳ Running: ${test.name}`);
+		  console.log(`👤 Using account: ${assignedAccount}`);
+		  try {
+			const time = await test.func(driver);
+			logResult(test.name, time);
+			console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
 
-				// Short pause between tests to avoid overwhelming the server
-				await new Promise(resolve => setTimeout(resolve, 2000));
-			} catch (testErr) {
-				console.error(`❌ Error in ${test.name}:`, testErr.message);
-				logResult(test.name, "ERROR");
-			}
+			// Short pause between tests to avoid overwhelming the server
+			await new Promise(resolve => setTimeout(resolve, 2000));
+		  } catch (testErr) {
+			console.error(`❌ Error in ${test.name}:`, testErr.message);
+			logResult(test.name, "ERROR");
+		  }
 		}
 	} catch (err) {
 		console.error("❌ General error during tests:", err);
@@ -103,9 +106,14 @@ Usage:
 	node src/app.js [command] [options]
 
 Commands:
-	priority    Run priority tests only (marked with * in specs)
-	all        Run all available tests
-	single <name>  Run a single test by name (partial match)
+	priority       Run priority tests only (marked with * in specs)
+	all           Run all available tests
+	single <name> Run a single test by name (partial match)
+
+NPM Scripts:
+	npm run priority     Run priority tests
+	npm run all         Run all tests
+	npm run show-accounts  Show which account each test uses
 
 Examples:
 	node src/app.js priority
@@ -118,6 +126,10 @@ ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
 Priority Tests:
 ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
+
+🔐 Account Management:
+Each test uses a unique account to prevent conflicts and enable parallel testing.
+Use 'npm run show-accounts' to see the complete account assignment matrix.
 		`);
 		break;
 }

@@ -1,36 +1,52 @@
 import { By, until } from "selenium-webdriver";
+import { performLogin, waitForSuccessfulLogin } from "../utils/login.js";
+import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+
+async function waitForCommunicatorUI(driver) {
+	// Look for communicator-specific elements
+	const communicatorSelectors = [
+		By.xpath("//*[contains(@class, 'communication')]"),
+		By.xpath("//*[contains(@class, 'communicator')]"),
+		By.xpath("//*[contains(text(), 'Inbox')]"),
+		By.xpath("//*[contains(text(), 'Messages')]"),
+		By.xpath("//*[contains(text(), 'Communication')]"),
+		By.xpath("//*[contains(@class, 'message')]")
+	];
+
+	return await waitForSuccessfulLogin(driver, communicatorSelectors);
+}
 
 export async function communicatorLearner(driver) {
-	const start = Date.now();
-
-	// Open communicator URL directly with learner credentials
 	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication&folderIds=[Inbox]");
 
+	// Use the REAL selectors found by debugging
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[name="username"]')),
+		until.elementLocated(By.css('input[type="email"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
-	await emailField.sendKeys("A9-106821@area9.dk");
+	const assignedAccount = getAccountForTest("Communicator Learner");
+	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[name="password"]')),
+		until.elementLocated(By.css('input[type="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
-	await passwordField.sendKeys("P@ssw0rd1234");
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
+	// Use the REAL login button selector
 	const signInButton = await driver.wait(
-		until.elementIsEnabled(driver.findElement(By.id("sign_in"))),
+		until.elementLocated(By.css('button[type="submit"]')),
 		20000
 	);
+	await driver.wait(until.elementIsEnabled(signInButton), 5000);
+
+	// START TIMING: Right before clicking login (as per specification)
+	const start = Date.now();
 	await signInButton.click();
 
-	// Wait for communicator UI to be visible (look for common communicator elements)
-	await driver.wait(
-		until.elementLocated(By.xpath("//*[contains(@class, 'communication') or contains(text(), 'Inbox') or contains(text(), 'Messages')]")),
-		20000
-	);
+	await waitForCommunicatorUI(driver);
 
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
@@ -40,36 +56,45 @@ export async function communicatorLearner(driver) {
 }
 
 export async function communicatorEducator(driver) {
-	const start = Date.now();
+	// Always do regular educator login first, then navigate to communication
+	// This avoids the complex detection logic that was causing issues
 
-	// Open communicator URL directly with educator credentials
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
+	console.log("🔐 Using standard educator login flow...");
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
+	// Use the REAL selectors found by debugging
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[name="username"]')),
+		until.elementLocated(By.css('input[type="email"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
-	await emailField.sendKeys("A9-106816@area9.dk");
+	const assignedAccount = getAccountForTest("Communicator Educator");
+	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[name="password"]')),
+		until.elementLocated(By.css('input[type="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
-	await passwordField.sendKeys("P@ssw0rd1234");
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
+	// Use the REAL login button selector
 	const signInButton = await driver.wait(
-		until.elementIsEnabled(driver.findElement(By.id("sign_in"))),
+		until.elementLocated(By.css('button[type="submit"]')),
 		20000
 	);
+	await driver.wait(until.elementIsEnabled(signInButton), 5000);
+
+	// START TIMING: Right before clicking login (as per specification)
+	const start = Date.now();
 	await signInButton.click();
 
-	// Wait for communicator UI to be visible (look for common communicator elements)
-	await driver.wait(
-		until.elementLocated(By.xpath("//*[contains(@class, 'communication') or contains(text(), 'Communication') or contains(text(), 'Messages')]")),
-		20000
-	);
+	await waitForSuccessfulLogin(driver);
+
+	// Now navigate to communication
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
+
+	await waitForCommunicatorUI(driver);
 
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
