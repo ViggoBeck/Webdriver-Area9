@@ -1,16 +1,15 @@
 import { By, until } from "selenium-webdriver";
 
-export async function loginCurator(driver) {
-	const start = Date.now();
-
-	await driver.get("https://br.uat.sg.rhapsode.com/curator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+export async function openReview(driver) {
+	// First login as educator
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	const emailField = await driver.wait(
 		until.elementLocated(By.css('input[name="username"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
-	await emailField.sendKeys("A9-106810@area9.dk");
+	await emailField.sendKeys("A9-106816@area9.dk");
 
 	const passwordField = await driver.wait(
 		until.elementLocated(By.css('input[name="password"]')),
@@ -25,15 +24,27 @@ export async function loginCurator(driver) {
 	);
 	await signInButton.click();
 
-	// Wait for Dashboard to be visible
+	// Wait for dashboard to load
 	await driver.wait(
 		until.elementLocated(By.xpath("//*[text()='Dashboard']")),
+		20000
+	);
+
+	// Start timing when clicking on Reviews tab
+	const start = Date.now();
+
+	// Navigate directly to the review URL or click Reviews tab
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#home&t=classes/class&class=785&t=classcontent");
+
+	// Wait for reviews to be visible
+	await driver.wait(
+		until.elementLocated(By.xpath("//*[contains(text(), 'Review') or contains(@class, 'review')]")),
 		20000
 	);
 
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
 
-	console.log("⏱ Login Curator tog:", seconds, "sekunder");
+	console.log("⏱ Open Review tog:", seconds, "sekunder");
 	return seconds;
 }
