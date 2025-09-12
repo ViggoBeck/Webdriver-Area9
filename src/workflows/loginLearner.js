@@ -1,14 +1,18 @@
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 
 export async function loginLearner(driver) {
 	await driver.get(
 		"https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc"
 	);
 
-	// Use the REAL selectors found by debugging
+	// Wait for page to fully load (form elements appear after 3+ seconds)
+	await new Promise(resolve => setTimeout(resolve, 4000));
+
+	// Use the CORRECT selectors from diagnostic
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[type="email"]')),
+		until.elementLocated(By.css('input[name="username"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
@@ -16,15 +20,15 @@ export async function loginLearner(driver) {
 	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[type="password"]')),
+		until.elementLocated(By.css('input[name="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	// Use the REAL login button selector
+	// Use the SPECIFIC login button ID (not generic submit button)
 	const signInButton = await driver.wait(
-		until.elementLocated(By.css('button[type="submit"]')),
+		until.elementLocated(By.id("sign_in")),
 		20000
 	);
 	await driver.wait(until.elementIsEnabled(signInButton), 5000);
@@ -67,6 +71,10 @@ export async function loginLearner(driver) {
   if (!loginSuccess) {
   	throw new Error("Could not verify learner login success");
   }
+
+  // Pause to let user observe the dashboard in visual mode
+  await logCurrentState(driver, "Login Learner");
+  await pauseForObservation(driver, "Dashboard loaded - you can see the learner interface", 3);
 
   const end = Date.now();
   const seconds = (end - start) / 1000;

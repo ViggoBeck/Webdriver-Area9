@@ -79,7 +79,7 @@ async function waitForCommunicatorUI(driver) {
 export async function communicatorLearner(driver) {
 	const start = Date.now();
 
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication&folderIds=[Inbox]");
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
 
 	await performLogin(driver, "A9-106821@area9.dk", "Communicator Learner");
 	await waitForCommunicatorUI(driver);

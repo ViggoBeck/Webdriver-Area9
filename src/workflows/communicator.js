@@ -17,11 +17,15 @@ async function waitForCommunicatorUI(driver) {
 }
 
 export async function communicatorLearner(driver) {
+	// Use direct communicator URL during login (consistent with educator approach)
 	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication&folderIds=[Inbox]");
 
-	// Use the REAL selectors found by debugging
+	// Wait for page to fully load
+	await new Promise(resolve => setTimeout(resolve, 4000));
+
+	// Perform standard login
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[type="email"]')),
+		until.elementLocated(By.css('input[name="username"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
@@ -29,15 +33,14 @@ export async function communicatorLearner(driver) {
 	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[type="password"]')),
+		until.elementLocated(By.css('input[name="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	// Use the REAL login button selector
 	const signInButton = await driver.wait(
-		until.elementLocated(By.css('button[type="submit"]')),
+		until.elementLocated(By.id("sign_in")),
 		20000
 	);
 	await driver.wait(until.elementIsEnabled(signInButton), 5000);
@@ -46,6 +49,7 @@ export async function communicatorLearner(driver) {
 	const start = Date.now();
 	await signInButton.click();
 
+	// Wait for communicator UI to load directly (no extra navigation needed)
 	await waitForCommunicatorUI(driver);
 
 	const end = Date.now();
@@ -56,15 +60,16 @@ export async function communicatorLearner(driver) {
 }
 
 export async function communicatorEducator(driver) {
-	// Always do regular educator login first, then navigate to communication
-	// This avoids the complex detection logic that was causing issues
+	// Use direct communicator URL during login (fixes navigation issue)
+	console.log("🔐 Using direct communicator URL during login...");
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
 
-	console.log("🔐 Using standard educator login flow...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	// Wait for page to fully load
+	await new Promise(resolve => setTimeout(resolve, 4000));
 
-	// Use the REAL selectors found by debugging
+	// Perform standard login
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[type="email"]')),
+		until.elementLocated(By.css('input[name="username"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
@@ -72,15 +77,14 @@ export async function communicatorEducator(driver) {
 	await emailField.sendKeys(assignedAccount);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[type="password"]')),
+		until.elementLocated(By.css('input[name="password"]')),
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	// Use the REAL login button selector
 	const signInButton = await driver.wait(
-		until.elementLocated(By.css('button[type="submit"]')),
+		until.elementLocated(By.id("sign_in")),
 		20000
 	);
 	await driver.wait(until.elementIsEnabled(signInButton), 5000);
@@ -89,11 +93,7 @@ export async function communicatorEducator(driver) {
 	const start = Date.now();
 	await signInButton.click();
 
-	await waitForSuccessfulLogin(driver);
-
-	// Now navigate to communication
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
-
+	// Wait for communicator UI to load directly (no extra navigation needed)
 	await waitForCommunicatorUI(driver);
 
 	const end = Date.now();

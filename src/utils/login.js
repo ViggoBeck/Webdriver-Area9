@@ -2,24 +2,27 @@ import { By, until } from "selenium-webdriver";
 import { DEFAULT_PASSWORD } from "./accounts.js";
 
 export async function performLogin(driver, email, password = DEFAULT_PASSWORD) {
-	// Use the REAL selectors found by debugging
+	// Wait longer for page to fully load (elements appear after 3+ seconds)
+	await new Promise(resolve => setTimeout(resolve, 4000));
+
+	// Use the CORRECT selectors from diagnostic
 	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[type="email"]')),
+		until.elementLocated(By.css('input[name="username"]')), // More specific than type
 		20000
 	);
 	await driver.wait(until.elementIsVisible(emailField), 5000);
 	await emailField.sendKeys(email);
 
 	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[type="password"]')),
+		until.elementLocated(By.css('input[name="password"]')), // More specific than type
 		20000
 	);
 	await driver.wait(until.elementIsVisible(passwordField), 5000);
 	await passwordField.sendKeys(password);
 
-	// Use the REAL login button selector - first submit button
+	// Use the SPECIFIC login button (not generic submit button)
 	const signInButton = await driver.wait(
-		until.elementLocated(By.css('button[type="submit"]')),
+		until.elementLocated(By.id("sign_in")), // The actual login button ID
 		20000
 	);
 	await driver.wait(until.elementIsEnabled(signInButton), 5000);

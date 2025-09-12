@@ -1,18 +1,32 @@
 import { Builder } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome.js";
 
-export async function createDriver() {
+export async function createDriver(visible = false, slowMode = false) {
 	const options = new chrome.Options();
 
 	// Add useful Chrome options
-	options.addArguments([
-		'--no-sandbox',
-		'--disable-dev-shm-usage',
-		'--disable-gpu',
-		'--window-size=1920,1080',
-		'--disable-web-security',
-		'--allow-running-insecure-content'
-	]);
+	if (!visible) {
+		options.addArguments([
+			'--no-sandbox',
+			'--disable-dev-shm-usage',
+			'--disable-gpu',
+			'--disable-web-security',
+			'--allow-running-insecure-content'
+		]);
+	} else {
+		// Visible mode - keep browser open and make it large
+		options.addArguments([
+			'--no-sandbox',
+			'--disable-web-security',
+			'--allow-running-insecure-content',
+			'--window-size=1400,1000',
+			'--start-maximized'
+		]);
+
+		if (slowMode) {
+			console.log("🐌 Slow mode enabled - browser will stay open longer");
+		}
+	}
 
 	try {
 		// Let Selenium automatically manage ChromeDriver

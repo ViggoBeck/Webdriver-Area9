@@ -9,8 +9,17 @@
   	"debug-button": "node src/debug-login-button.js",
 	"debug-deep": "node src/debug-login-deep.js",
 	"show-accounts": "node src/show-accounts.js",
+	"explore": "node src/explore-all-tests.js",
+	"explore-catalog": "node src/explore-course-catalog.js",
+	"verify-accounts": "node src/verify-accounts.js",
+	"simple-explore": "node src/simple-explore.js",
+	"debug-load": "node src/debug-page-load.js",
   	"priority": "node src/app.js priority",
-  	"all": "node src/app.js all"
+  	"priority-watch": "node src/app.js priority --visible --slow",
+  	"implemented": "node src/app.js implemented",
+  	"implemented-watch": "node src/app.js implemented --visible --slow",
+  	"all": "node src/app.js all",
+  	"all-watch": "node src/app.js all --visible --slow"
   },
   "keywords": [],
   "author": "",
