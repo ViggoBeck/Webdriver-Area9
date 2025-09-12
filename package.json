@@ -4,22 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  	"test": "echo \"Error: no test specified\" && exit 1",
-  	"debug": "node src/debug-test.js",
-  	"debug-button": "node src/debug-login-button.js",
-	"debug-deep": "node src/debug-login-deep.js",
-	"show-accounts": "node src/show-accounts.js",
-	"explore": "node src/explore-all-tests.js",
-	"explore-catalog": "node src/explore-course-catalog.js",
-	"verify-accounts": "node src/verify-accounts.js",
-	"simple-explore": "node src/simple-explore.js",
-	"debug-load": "node src/debug-page-load.js",
-  	"priority": "node src/app.js priority",
-  	"priority-watch": "node src/app.js priority --visible --slow",
-  	"implemented": "node src/app.js implemented",
-  	"implemented-watch": "node src/app.js implemented --visible --slow",
-  	"all": "node src/app.js all",
-  	"all-watch": "node src/app.js all --visible --slow"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "show-accounts": "node src/show-accounts.js",
+    "priority": "node src/app.js priority",
+    "priority-watch": "node src/app.js priority --visible --slow",
+    "working": "node src/app.js working",
+    "working-watch": "node src/app.js working --visible --slow",
+    "all": "node src/app.js all",
+    "all-watch": "node src/app.js all --visible --slow"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +19,7 @@
   "type": "module",
   "dependencies": {
     "chromedriver": "^139.0.3",
+    "dotenv": "^17.2.2",
     "selenium-webdriver": "^4.35.0"
   }
 }

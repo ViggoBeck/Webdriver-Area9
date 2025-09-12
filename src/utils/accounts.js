@@ -1,4 +1,8 @@
 // Account assignment system - each test gets a unique account
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const ACCOUNTS = {
 	learner: [
@@ -108,5 +112,10 @@ export function showAccountAssignments() {
 	console.log(`📊 Total: ${Object.keys(TEST_ACCOUNT_ASSIGNMENTS).length} tests with unique account assignments`);
 }
 
-// Default password for all accounts
-export const DEFAULT_PASSWORD = "P@ssw0rd1234";
+// Default password for all accounts - loaded from environment variables
+export const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || "P@ssw0rd1234";
+
+// Validate that password is loaded
+if (!process.env.DEFAULT_PASSWORD) {
+	console.warn("⚠️  DEFAULT_PASSWORD not found in .env file, using hardcoded fallback");
+}

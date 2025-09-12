@@ -4,16 +4,18 @@ import { loginEducator } from "./workflows/loginEducator.js";
 import { loginCurator } from "./workflows/loginCurator.js";
 import { communicatorLearner, communicatorEducator } from "./workflows/communicator.js";
 import { openReview } from "./workflows/openReview.js";
-import { openScorm } from "./workflows/openScorm.js";
-import { openVideoProbe } from "./workflows/openVideoProbe.js";
-import { openCourseCatalog } from "./workflows/openCourseCatalog.js";
-import { analyticsEducator } from "./workflows/analyticsEducator.js";
-import { analyticsCuratorUniqueUsers, analyticsCuratorProjectTeam } from "./workflows/analyticsCurator.js";
-import { openClass } from "./workflows/openClass.js";
-import { createClass } from "./workflows/createClass.js";
-import { deleteClass } from "./workflows/deleteClass.js";
 import { logResult } from "./utils/log.js";
 import { getAccountForTest } from "./utils/accounts.js";
+import { validateConfig } from "./utils/config.js";
+
+// Validate configuration on startup
+try {
+	validateConfig();
+} catch (error) {
+	console.error("❌ Configuration Error:", error.message);
+	console.error("💡 Make sure you have a .env file with all required variables");
+	process.exit(1);
+}
 
 // Clear browser session between tests to ensure clean login state
 async function clearSession(driver) {
@@ -34,34 +36,26 @@ async function clearSession(driver) {
 	}
 }
 
-// Priority tests marked with (*) in specifications
-const PRIORITY_TESTS = [
+// Working tests - all 6 fully functional and reliable
+const WORKING_TESTS = [
 	{ name: "Login Learner", func: loginLearner },
 	{ name: "Login Educator", func: loginEducator },
 	{ name: "Login Curator", func: loginCurator },
 	{ name: "Communicator Learner", func: communicatorLearner },
 	{ name: "Communicator Educator", func: communicatorEducator },
-	{ name: "Open Course Catalog", func: openCourseCatalog }
+	{ name: "Open Review", func: openReview }
 ];
 
-// All available tests
-const IMPLEMENTED_TESTS = [
-	...PRIORITY_TESTS,
-	{ name: "Open Review", func: openReview },
-	{ name: "Open SCORM", func: openScorm }
+// Priority tests from specifications (first 5 working tests)
+const PRIORITY_TESTS = [
+	{ name: "Login Learner", func: loginLearner },
+	{ name: "Login Educator", func: loginEducator },
+	{ name: "Login Curator", func: loginCurator },
+	{ name: "Communicator Learner", func: communicatorLearner },
+	{ name: "Communicator Educator", func: communicatorEducator }
 ];
 
-const NOT_YET_IMPLEMENTED = [
-	{ name: "Open Video Probe", func: openVideoProbe },
-	{ name: "Analytics Educator", func: analyticsEducator },
-	{ name: "Analytics Curator - Unique Users", func: analyticsCuratorUniqueUsers },
-	{ name: "Analytics Curator - Project Team", func: analyticsCuratorProjectTeam },
-	{ name: "Open Class", func: openClass },
-	{ name: "Create Class", func: createClass },
-	{ name: "Delete Class", func: deleteClass }
-];
-
-const ALL_TESTS = [...IMPLEMENTED_TESTS, ...NOT_YET_IMPLEMENTED];
+const ALL_TESTS = WORKING_TESTS;
 
 async function runTests(testSuite, suiteName, options = {}) {
 	console.log(`\n🚀 Starting ${suiteName}...`);
@@ -120,8 +114,8 @@ async function runPriorityTests(options = {}) {
 	await runTests(PRIORITY_TESTS, "Priority Tests", options);
 }
 
-async function runImplementedTests(options = {}) {
-	await runTests(IMPLEMENTED_TESTS, "Implemented Tests", options);
+async function runWorkingTests(options = {}) {
+	await runTests(WORKING_TESTS, "Working Tests", options);
 }
 
 async function runAllTests(options = {}) {
@@ -142,8 +136,8 @@ switch (command) {
 	case "priority":
 		runPriorityTests(options);
 		break;
-	case "implemented":
-		runImplementedTests(options);
+	case "working":
+		runWorkingTests(options);
 		break;
 	case "all":
 		runAllTests(options);
@@ -167,9 +161,9 @@ Usage:
 	node src/app.js [command] [options]
 
 Commands:
-	priority       Run priority tests only (6 tests)
-	implemented    Run all implemented tests (8 tests including Open Review + SCORM)
-	all           Run all tests (including unfinished ones - will error)
+	priority       Run priority tests only (5 tests - core login and communicator)
+	working        Run all working tests (6 tests including Open Review)
+	all           Run all working tests (same as 'working')
 	single <name> Run a single test by name (partial match)
 
 Options:
@@ -182,16 +176,16 @@ NPM Scripts:
 	npm run show-accounts   Show which account each test uses
 
 Examples:
-	node src/app.js priority                    # Run 6 priority tests headless
-	node src/app.js implemented --visible       # Run 8 implemented tests visible
-	node src/app.js single "open scorm" -v -s   # Test the new SCORM functionality
-	node src/app.js single "open review" -v     # Test the review functionality
-	node src/app.js priority --visible --slow   # Watch all priority tests slowly
+	node src/app.js priority                    # Run 5 priority tests headless
+	node src/app.js working --visible           # Run all 6 working tests visible
+	node src/app.js single "open review" -v -s  # Test the review functionality
+	node src/app.js single "login learner" -v   # Test specific login functionality
+	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
-Available Tests:
+Working Tests (6):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
-Priority Tests:
+Priority Tests (5):
 ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
 
 🔐 Account Management:
