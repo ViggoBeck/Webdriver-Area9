@@ -1,25 +1,36 @@
 {
-  "name": "wd",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "show-accounts": "node src/show-accounts.js",
-    "priority": "node src/app.js priority",
-    "priority-watch": "node src/app.js priority --visible --slow",
-    "working": "node src/app.js working",
-    "working-watch": "node src/app.js working --visible --slow",
-    "all": "node src/app.js all",
-    "all-watch": "node src/app.js all --visible --slow"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "dependencies": {
-    "chromedriver": "^139.0.3",
-    "dotenv": "^17.2.2",
-    "selenium-webdriver": "^4.35.0"
-  }
+	"name": "area9-performance-tests",
+	"version": "1.0.0",
+	"description": "Automated performance testing framework for Area9 learning platform",
+	"main": "src/app.js",
+	"scripts": {
+		"start": "node src/app.js working",
+		"test": "node src/app.js working",
+		"show-accounts": "node src/show-accounts.js",
+		"priority": "node src/app.js priority",
+		"priority-watch": "node src/app.js priority --visible --slow",
+		"working": "node src/app.js working",
+		"working-watch": "node src/app.js working --visible --slow",
+		"all": "node src/app.js all",
+		"all-watch": "node src/app.js all --visible --slow"
+	},
+	"keywords": [
+		"area9",
+		"performance-testing",
+		"selenium",
+		"webdriver",
+		"automation",
+		"testing"
+	],
+	"author": "Area9 Development Team",
+	"license": "ISC",
+	"type": "module",
+	"engines": {
+		"node": ">=16.0.0"
+	},
+	"dependencies": {
+		"chromedriver": "^139.0.3",
+		"dotenv": "^17.2.2",
+		"selenium-webdriver": "^4.35.0"
+	}
 }

@@ -36,7 +36,7 @@ async function clearSession(driver) {
 	}
 }
 
-// Working tests - all 6 fully functional and reliable
+// Working tests
 const WORKING_TESTS = [
 	{ name: "Login Learner", func: loginLearner },
 	{ name: "Login Educator", func: loginEducator },
@@ -162,7 +162,7 @@ Usage:
 
 Commands:
 	priority       Run priority tests only (5 tests - core login and communicator)
-	working        Run all working tests (6 tests including Open Review)
+	working        Run all working tests (6 tests including Review)
 	all           Run all working tests (same as 'working')
 	single <name> Run a single test by name (partial match)
 
