@@ -29,6 +29,19 @@ async function clearSession(driver) {
 	try {
 		console.log("🧹 Clearing session between tests...");
 
+		// Check if the browser window is still available
+		try {
+			await driver.getTitle(); // Simple check to see if window exists
+		} catch (windowError) {
+			if (windowError.message.includes("no such window") ||
+			    windowError.message.includes("target window already closed") ||
+			    windowError.message.includes("web view not found")) {
+				console.log("✅ Session already closed (likely due to logout) - skipping session clear");
+				return;
+			}
+			throw windowError; // Re-throw if it's a different error
+		}
+
 		// Clear all cookies, local storage, and session storage
 		await driver.manage().deleteAllCookies();
 
@@ -87,8 +100,13 @@ async function runTests(testSuite, suiteName, options = {}) {
 	if (options.slowMode) {
 		console.log("🐌 Slow mode enabled - pauses between actions");
 	}
+	if (options.disableCache) {
+		console.log("🚫 Cache disabled - measuring cold load performance");
+	} else {
+		console.log("💾 Cache enabled - measuring warm load performance");
+	}
 
-	const driver = await createDriver(options.visible, options.slowMode);
+	const driver = await createDriver(options.visible, options.slowMode, options.disableCache);
 
 	try {
 		for (const test of testSuite) {
@@ -97,7 +115,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 		  console.log(`👤 Using account: ${assignedAccount}`);
 			try {
 				const time = await test.func(driver);
-				logResult(test.name, time);
+				logResult(test.name, time, options.disableCache);
 				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
 
 				if (options.slowMode) {
@@ -113,7 +131,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 				await new Promise(resolve => setTimeout(resolve, pauseTime));
 			} catch (testErr) {
 				console.error(`❌ Error in ${test.name}:`, testErr.message);
-				logResult(test.name, "ERROR");
+				logResult(test.name, "ERROR", options.disableCache);
 
 				if (options.slowMode) {
 					console.log("🐌 Slow mode: Pausing 3 seconds after error...");
@@ -151,7 +169,8 @@ const command = args[0];
 // Parse options
 const options = {
 	visible: args.includes('--visible') || args.includes('-v'),
-	slowMode: args.includes('--slow') || args.includes('-s')
+	slowMode: args.includes('--slow') || args.includes('-s'),
+	disableCache: args.includes('--no-cache') || args.includes('--disable-cache') || args.includes('-nc')
 };
 
 switch (command) {
@@ -189,8 +208,9 @@ Commands:
 	single <name> Run a single test by name (partial match)
 
 Options:
-	--visible, -v  Show browser window (for watching tests run)
-	--slow, -s     Add pauses to observe what's happening
+	--visible, -v           Show browser window (for watching tests run)
+	--slow, -s              Add pauses to observe what's happening
+	--no-cache, --disable-cache, -nc  Disable browser cache (test cold load performance)
 
 NPM Scripts:
 	npm run priority        Run priority tests (headless)
@@ -198,11 +218,13 @@ NPM Scripts:
 	npm run show-accounts   Show which account each test uses
 
 Examples:
-	node src/app.js priority                    # Run 5 priority tests headless
-	node src/app.js working --visible           # Run all 13 working tests visible
-	node src/app.js single "open review" -v -s  # Test the review functionality
-	node src/app.js single "login learner" -v   # Test specific login functionality
-	node src/app.js priority --visible --slow   # Watch priority tests slowly
+	node src/app.js priority                    # Run priority tests headless with cache
+	node src/app.js working --visible           # Run all working tests visible with cache
+	node src/app.js priority --no-cache         # Run priority tests without cache (cold load)
+	node src/app.js working --no-cache --visible # Run working tests without cache, visible
+	node src/app.js single "open review" -v -s  # Test review functionality (slow + visible)
+	node src/app.js single "login learner" -nc  # Test login without cache
+	node src/app.js priority --visible --slow   # Watch priority tests slowly with cache
 
 Working Tests (13):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}

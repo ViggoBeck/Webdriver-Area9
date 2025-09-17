@@ -1,24 +1,50 @@
 import { Builder } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome.js";
 
-export async function createDriver(visible = false, slowMode = false) {
+export async function createDriver(visible = false, slowMode = false, disableCache = false) {
 	const options = new chrome.Options();
 
-	// Add useful Chrome options
+	// Base Chrome options for all modes
+	const baseOptions = [
+		'--no-sandbox',
+		'--disable-web-security',
+		'--allow-running-insecure-content'
+	];
+
+	// Cache control options
+	if (disableCache) {
+		const noCacheOptions = [
+			'--disable-application-cache',
+			'--disable-background-networking',
+			'--disable-default-apps',
+			'--disable-extensions',
+			'--disable-sync',
+			'--disable-translate',
+			'--disable-plugins',
+			'--disk-cache-size=1',
+			'--media-cache-size=1',
+			'--aggressive-cache-discard',
+			'--disable-background-timer-throttling',
+			'--disable-renderer-backgrounding',
+			'--disable-backgrounding-occluded-windows'
+		];
+		baseOptions.push(...noCacheOptions);
+		console.log("🚫 Cache disabled - testing cold load performance");
+	} else {
+		console.log("💾 Cache enabled - testing warm load performance");
+	}
+
+	// Add mode-specific options
 	if (!visible) {
 		options.addArguments([
-			'--no-sandbox',
+			...baseOptions,
 			'--disable-dev-shm-usage',
-			'--disable-gpu',
-			'--disable-web-security',
-			'--allow-running-insecure-content'
+			'--disable-gpu'
 		]);
 	} else {
 		// Visible mode - keep browser open and make it large
 		options.addArguments([
-			'--no-sandbox',
-			'--disable-web-security',
-			'--allow-running-insecure-content',
+			...baseOptions,
 			'--window-size=1400,1000',
 			'--start-maximized'
 		]);
@@ -34,6 +60,23 @@ export async function createDriver(visible = false, slowMode = false) {
 			.forBrowser("chrome")
 			.setChromeOptions(options)
 			.build();
+
+		// Additional cache disabling via Chrome DevTools Protocol
+		if (disableCache) {
+			try {
+				// Enable Network domain and disable cache
+				await driver.executeScript(`
+					if (window.chrome && window.chrome.debugger) {
+						chrome.debugger.attach({tabId: chrome.tabs.getCurrent().id}, "1.0");
+						chrome.debugger.sendCommand({tabId: chrome.tabs.getCurrent().id}, "Network.enable");
+						chrome.debugger.sendCommand({tabId: chrome.tabs.getCurrent().id}, "Network.setCacheDisabled", {cacheDisabled: true});
+					}
+				`);
+			} catch (debugError) {
+				// DevTools approach failed, but driver still works with command-line options
+				console.log("⚠️ DevTools cache disable failed (using command-line options only)");
+			}
+		}
 
 		return driver;
 	} catch (error) {

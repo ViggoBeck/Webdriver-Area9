@@ -33,7 +33,7 @@ node src/app.js single "login learner" --visible --slow
 ### ✅ Working Tests (13)
 
 #### **Authentication & Core (3 tests)**
-- **Login Learner** (~3-6s) - Learner dashboard login flow
+- **Login Learner** (~3-6s) - Learner dashboard login flow with onboarding overlay dismissal and automatic logout
 - **Login Educator** (~3s) - Educator dashboard login flow
 - **Login Curator** (~3s) - Curator dashboard login flow
 
@@ -63,10 +63,14 @@ Core functionality that forms the foundation: Login (3) + Communication (2) + Co
 ### **Test Suite Commands**
 | Command | Description |
 |---------|-------------|
-| `npm run priority` | Run 6 priority tests (headless) |
-| `npm run priority-watch` | Run priority tests (visible + slow) |
-| `npm run working` | Run all 13 working tests (headless) |
-| `npm run working-watch` | Run all working tests (visible + slow) |
+| `npm run priority` | Run 6 priority tests (headless with cache) |
+| `npm run priority-watch` | Run priority tests (visible + slow with cache) |
+| `npm run priority-cold` | Run priority tests without cache (cold load performance) |
+| `npm run priority-cold-watch` | Run priority tests without cache (visible + slow) |
+| `npm run working` | Run all 13 working tests (headless with cache) |
+| `npm run working-watch` | Run all working tests (visible + slow with cache) |
+| `npm run working-cold` | Run all working tests without cache (cold load performance) |
+| `npm run working-cold-watch` | Run all working tests without cache (visible + slow) |
 | `npm run show-accounts` | Display account assignments |
 
 ### **Individual Test Commands**
@@ -83,25 +87,56 @@ Core functionality that forms the foundation: Login (3) + Communication (2) + Co
 ### **Utility Commands**
 | Command | Description |
 |---------|-------------|
-| `npm run clear-results` | Clear results.csv file |
+| `npm run clear-results` | Clear legacy results.csv file |
+| `npm run clear-results-warm` | Clear warm load results only |
+| `npm run clear-results-cold` | Clear cold load results only |
+| `npm run clear-results-all` | Clear all result files (warm, cold, all, legacy) |
 | `npm run show-accounts` | Show account assignments for each test |
+
+### **Cache Control Testing**
+
+The framework supports testing both **cold load** (no cache) and **warm load** (with cache) performance:
+
+```bash
+# Cache Control Options
+--no-cache, --disable-cache, -nc  # Disable browser cache for cold load testing
+
+# Compare Cache vs No-Cache Performance
+npm run priority                  # Warm load with cache
+npm run priority-cold             # Cold load without cache
+
+# Watch cache behavior
+npm run working-cold-watch        # Visual cold load testing
+npm run working-watch             # Visual warm load testing
+
+# Single test cache control
+node src/app.js single "login learner" --no-cache -v    # Cold load login test
+node src/app.js single "open scorm" -nc --visible       # Cold load SCORM test
+```
+
+**Cache Control Features:**
+- 🚫 **Complete cache disabling**: Application cache, disk cache, media cache
+- 🧹 **Background process disabling**: Extensions, sync, default apps
+- ⚡ **Performance comparison**: Easy A/B testing of cold vs warm performance
+- 📊 **Separate metrics**: Results show whether cache was enabled/disabled
 
 ### **Advanced Usage**
 ```bash
-# Run specific test types
-node src/app.js single "login" --visible          # Any login test
-node src/app.js single "communicator" --visible   # Any communicator test
-node src/app.js single "open" --visible           # Any "open" functionality
-node src/app.js single "unique" --visible         # Unique Users Report
-node src/app.js single "project" --visible        # Project Team Activity
+# Run specific test types with cache control
+node src/app.js single "login" --visible --no-cache     # Any login test (cold)
+node src/app.js single "communicator" --visible         # Any communicator test (warm)
+node src/app.js single "open" --visible --no-cache      # Any "open" functionality (cold)
+node src/app.js single "unique" --visible               # Unique Users Report (warm)
 
 # Different modes
-node src/app.js working                           # Headless mode (faster)
-node src/app.js working --visible                 # Watch browser
-node src/app.js working --visible --slow          # Watch + pauses
+node src/app.js working                           # Headless mode with cache
+node src/app.js working --no-cache                # Headless mode without cache
+node src/app.js working --visible                 # Watch browser with cache
+node src/app.js working --visible --no-cache      # Watch browser without cache
 
-# Single test with specific options
-node src/app.js single "create class" -v -s       # Create class test (visual + slow)
+# Combined options
+node src/app.js single "create class" -v -s -nc   # Visual + slow + no cache
+node src/app.js priority --visible --slow --no-cache  # Full debugging cold load
 ```
 
 ## Configuration
@@ -140,38 +175,92 @@ npm run show-accounts
 
 ## Results & Monitoring
 
-Test results are automatically logged to `results.csv` with:
-- Timestamp
-- Test name
-- Execution time (seconds) or "ERROR"
+Test results are automatically logged to separate files based on cache status:
+
+### **Result File Structure**
+```
+results/
+├── results-warm.csv     # Tests run with cache enabled (warm load)
+├── results-cold.csv     # Tests run with cache disabled (cold load)
+├── results-all.csv      # All tests with cache status column
+results.csv              # Legacy file (backward compatibility)
+```
+
+**File Format**: `timestamp,test_name,execution_time,cache_status`
+- Cache status: `WARM` (with cache) or `COLD` (without cache)
+- Execution time: seconds (number) or `ERROR`
 
 ### **Managing Results**
 ```bash
-# View recent results
-tail -10 results.csv
+# View recent results by type
+tail -10 results/results-warm.csv       # Recent warm load results
+tail -10 results/results-cold.csv       # Recent cold load results
+tail -10 results/results-all.csv        # Recent all results with cache status
 
-# View all results
-cat results.csv
+# View legacy results (backward compatibility)
+tail -10 results.csv                    # All results without cache status
 
-# Clear all results (start fresh)
-npm run clear-results
+# Clear specific result types
+npm run clear-results-warm              # Clear only warm load results
+npm run clear-results-cold              # Clear only cold load results
+npm run clear-results-all               # Clear all result files
+npm run clear-results                   # Clear legacy results.csv only
 
-# Count total test runs
-wc -l results.csv
+# Count test runs by type
+wc -l results/results-warm.csv          # Count warm load tests
+wc -l results/results-cold.csv          # Count cold load tests
+wc -l results/results-all.csv           # Count all tests
 
 # View only successful tests
-grep -v "ERROR" results.csv | tail -10
+grep -v "ERROR" results/results-warm.csv | tail -10    # Successful warm tests
+grep -v "ERROR" results/results-cold.csv | tail -10    # Successful cold tests
 ```
 
 ### **Performance Monitoring**
 ```bash
-# Monitor specific test performance over time
-grep "Open SCORM" results.csv | tail -5
-grep "Login Learner" results.csv | tail -5
+# Monitor specific test performance over time (by cache type)
+grep "Open SCORM" results/results-warm.csv | tail -5     # SCORM with cache
+grep "Open SCORM" results/results-cold.csv | tail -5     # SCORM without cache
+grep "Login Learner" results/results-warm.csv | tail -5   # Login with cache
+grep "Login Learner" results/results-cold.csv | tail -5   # Login without cache
 
-# Find fastest/slowest runs
-grep -v "ERROR" results.csv | sort -k3 -n | head -5   # Fastest
-grep -v "ERROR" results.csv | sort -k3 -nr | head -5  # Slowest
+# Find fastest/slowest runs (by cache type)
+grep -v "ERROR" results/results-warm.csv | sort -k3 -n | head -5    # Fastest warm
+grep -v "ERROR" results/results-cold.csv | sort -k3 -n | head -5    # Fastest cold
+grep -v "ERROR" results/results-warm.csv | sort -k3 -nr | head -5   # Slowest warm
+grep -v "ERROR" results/results-cold.csv | sort -k3 -nr | head -5   # Slowest cold
+
+# All results with cache status
+grep "Login Learner" results/results-all.csv | tail -10             # Mixed cache status
+```
+
+### **Cache vs No-Cache Performance Analysis**
+```bash
+# Direct performance comparison for specific tests
+echo "=== Login Learner Performance Comparison ==="
+echo "WARM (with cache):"
+grep "Login Learner" results/results-warm.csv | tail -5 | awk -F',' '{print $3 "s"}'
+echo "COLD (without cache):"
+grep "Login Learner" results/results-cold.csv | tail -5 | awk -F',' '{print $3 "s"}'
+
+# Average performance by cache type (requires basic calculation)
+echo "=== Average Open SCORM Performance ==="
+echo "WARM: $(grep -v "ERROR" results/results-warm.csv | grep "Open SCORM" | awk -F',' '{sum+=$3; count++} END {print sum/count "s average"}')"
+echo "COLD: $(grep -v "ERROR" results/results-cold.csv | grep "Open SCORM" | awk -F',' '{sum+=$3; count++} END {print sum/count "s average"}')"
+
+# Side-by-side comparison script
+cat << 'EOF' > compare-performance.sh
+#!/bin/bash
+TEST_NAME="$1"
+echo "=== Performance Comparison: $TEST_NAME ==="
+echo "WARM (cached) - Last 5 runs:"
+grep "$TEST_NAME" results/results-warm.csv | grep -v "ERROR" | tail -5 | awk -F',' '{printf "  %s: %ss\n", $1, $3}'
+echo "COLD (no cache) - Last 5 runs:"
+grep "$TEST_NAME" results/results-cold.csv | grep -v "ERROR" | tail -5 | awk -F',' '{printf "  %s: %ss\n", $1, $3}'
+EOF
+chmod +x compare-performance.sh
+
+# Usage: ./compare-performance.sh "Login Learner"
 ```
 
 ## Project Structure
@@ -207,7 +296,11 @@ src/
 ├── .env                           # Environment variables (not in repo)
 ├── .env.example                   # Environment template
 ├── package.json                   # Dependencies & npm scripts
-├── results.csv                    # Test results log (auto-generated)
+├── results.csv                    # Legacy test results (backward compatibility)
+├── results/                       # Performance results directory
+│   ├── results-all.csv           # All results with cache status
+│   ├── results-warm.csv          # Warm load results (with cache)
+│   └── results-cold.csv          # Cold load results (without cache)
 └── test-specifications.md         # Original test requirements
 ```
 
@@ -272,16 +365,19 @@ stage('Performance Tests') {
 - ✅ **Fallback detection**: URL changes, content loading, navigation confirmation
 
 ### **UI Interaction Handling**
-- ✅ **Overlay dismissal**: Automatic handling of "GOT IT" tutorial overlays
+- ✅ **Enhanced overlay dismissal**: Comprehensive handling of onboarding overlays ("GOT IT", "OK", "Close", "Skip")
 - ✅ **JavaScript clicks**: Fallback clicks when normal clicks fail
 - ✅ **Scroll into view**: Ensures elements are visible before interaction
 - ✅ **Form validation**: Waits for buttons to become enabled
+- ✅ **Session management**: Login Learner test includes overlay dismissal and automatic logout for clean sessions
 
 ### **Performance Measurement**
 - ✅ **Precise timing**: Millisecond accuracy with proper start/stop points
 - ✅ **Specification compliance**: Timing points match original test requirements
 - ✅ **CSV logging**: Structured results with timestamps
 - ✅ **Error tracking**: Distinguishes between timeouts and functional errors
+- ✅ **Cache control**: Compare cold load vs warm load performance
+- ✅ **Performance modes**: Test realistic first-visit vs returning-user scenarios
 
 ### **Visual Testing Support**
 - ✅ **Browser visibility**: Watch tests run in real-time
