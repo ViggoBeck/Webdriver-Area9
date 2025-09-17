@@ -3,6 +3,13 @@ import { loginLearner } from "./workflows/loginLearner.js";
 import { loginEducator } from "./workflows/loginEducator.js";
 import { loginCurator } from "./workflows/loginCurator.js";
 import { communicatorLearner, communicatorEducator } from "./workflows/communicator.js";
+import { openScorm } from "./workflows/openScorm.js";
+import { openVideoProbe } from "./workflows/openVideoProbe.js";
+import { openCourseCatalog } from "./workflows/openCourseCatalog.js";
+import { openUniqueUsersReport } from "./workflows/openUniqueUsersReport.js";
+import { openProjectTeamActivity } from "./workflows/OpenProjectTeam.js";
+import { openClass } from "./workflows/openClass.js";
+import { createClass } from "./workflows/createClass.js";
 import { openReview } from "./workflows/openReview.js";
 import { logResult } from "./utils/log.js";
 import { getAccountForTest } from "./utils/accounts.js";
@@ -29,6 +36,12 @@ async function clearSession(driver) {
 		await driver.executeScript("window.localStorage.clear();");
 		await driver.executeScript("window.sessionStorage.clear();");
 
+		// Clear any cached data and reload
+		await driver.executeScript("window.location.reload(true);");
+
+		// Wait for any ongoing requests to complete
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
 		console.log("✅ Session cleared successfully");
 	} catch (error) {
 		console.log("⚠️ Error clearing session:", error.message);
@@ -43,16 +56,24 @@ const WORKING_TESTS = [
 	{ name: "Login Curator", func: loginCurator },
 	{ name: "Communicator Learner", func: communicatorLearner },
 	{ name: "Communicator Educator", func: communicatorEducator },
+	{ name: "Open SCORM", func: openScorm },
+	{ name: "Open Video Probe", func: openVideoProbe },
+	{ name: "Open Course Catalog", func: openCourseCatalog },
+	{ name: "Open Unique Users Report", func: openUniqueUsersReport },
+	{ name: "Open Project Team Activity", func: openProjectTeamActivity },
+	{ name: "Open Class", func: openClass },
+	{ name: "Create Class", func: createClass },
 	{ name: "Open Review", func: openReview }
 ];
 
-// Priority tests from specifications (first 5 working tests)
+// Priority tests from specifications (marked with * in test-specifications.md)
 const PRIORITY_TESTS = [
 	{ name: "Login Learner", func: loginLearner },
 	{ name: "Login Educator", func: loginEducator },
 	{ name: "Login Curator", func: loginCurator },
 	{ name: "Communicator Learner", func: communicatorLearner },
-	{ name: "Communicator Educator", func: communicatorEducator }
+	{ name: "Communicator Educator", func: communicatorEducator },
+	{ name: "Open Course Catalog", func: openCourseCatalog }
 ];
 
 const ALL_TESTS = WORKING_TESTS;
@@ -87,8 +108,9 @@ async function runTests(testSuite, suiteName, options = {}) {
 				// Clear session between tests to ensure clean state
 				await clearSession(driver);
 
-				// Short pause between tests to avoid overwhelming the server
-				await new Promise(resolve => setTimeout(resolve, 2000));
+				// Longer pause between tests to avoid overwhelming the server (especially in batch mode)
+				const pauseTime = options.slowMode ? 5000 : 3000;
+				await new Promise(resolve => setTimeout(resolve, pauseTime));
 			} catch (testErr) {
 				console.error(`❌ Error in ${test.name}:`, testErr.message);
 				logResult(test.name, "ERROR");
@@ -161,8 +183,8 @@ Usage:
 	node src/app.js [command] [options]
 
 Commands:
-	priority       Run priority tests only (5 tests - core login and communicator)
-	working        Run all working tests (6 tests including Review)
+	priority       Run priority tests only (6 tests - core login, communicator, course catalog)
+	working        Run all working tests (13 tests including SCORM, Video, Catalog, Analytics, Classes, Review)
 	all           Run all working tests (same as 'working')
 	single <name> Run a single test by name (partial match)
 
@@ -177,15 +199,15 @@ NPM Scripts:
 
 Examples:
 	node src/app.js priority                    # Run 5 priority tests headless
-	node src/app.js working --visible           # Run all 6 working tests visible
+	node src/app.js working --visible           # Run all 13 working tests visible
 	node src/app.js single "open review" -v -s  # Test the review functionality
 	node src/app.js single "login learner" -v   # Test specific login functionality
 	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
-Working Tests (6):
+Working Tests (13):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
-Priority Tests (5):
+Priority Tests (6):
 ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
 
 🔐 Account Management:

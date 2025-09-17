@@ -1,79 +1,100 @@
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { buildLearnerUrl } from "../utils/config.js";
-import { waitForSuccessfulLogin } from "../utils/login.js";
+import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 
 export async function openCourseCatalog(driver) {
-	// Go to learner base URL and log in
-	await driver.get(buildLearnerUrl());
+  // --- LOGIN (ikke timed) ---
+  await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
-	// Login (inline for parity with existing flows)
-	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[name="username"]')),
-		20000
-	);
-	await driver.wait(until.elementIsVisible(emailField), 5000);
-	await emailField.sendKeys(getAccountForTest("Open Course Catalog"));
+  const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), 20000);
+  await emailField.sendKeys(getAccountForTest("Open Course Catalog"));
 
-	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[name="password"]')),
-		20000
-	);
-	await driver.wait(until.elementIsVisible(passwordField), 5000);
-	await passwordField.sendKeys(DEFAULT_PASSWORD);
+  const passwordField = await driver.findElement(By.css('input[name="password"]'));
+  await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	const signInButton = await driver.wait(
-		until.elementLocated(By.id("sign_in")),
-		20000
-	);
-	await driver.wait(until.elementIsEnabled(signInButton), 5000);
-	await signInButton.click();
+  const signInBtn = await driver.findElement(By.id("sign_in"));
+  await signInBtn.click();
+  await driver.wait(until.stalenessOf(signInBtn), 15000).catch(() => {});
 
-	await waitForSuccessfulLogin(driver);
+  // --- DASHBOARD ---
+  await driver.wait(until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")), 30000);
 
-	// Try to locate the Course Catalog entry/menu/button
-	const catalogSelectors = [
-		By.xpath("//*[normalize-space(text())='Course catalog']"),
-		By.xpath("//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'),'course catalog')]") ,
-		By.css('button[aria-label*="catalog"]'),
-		By.css('a[href*="catalog"]'),
-	];
+  // --- OVERLAY (hvis den findes) ---
+  try {
+    const gotItCandidates = await driver.findElements(By.xpath("//*[normalize-space(text())='GOT IT']"));
+    for (let btn of gotItCandidates) {
+      if (await btn.isDisplayed()) {
+        await driver.executeScript("arguments[0].click();", btn);
+        await driver.wait(until.stalenessOf(btn), 10000);
+        break;
+      }
+    }
+  } catch {}
 
-	let catalogEntry = null;
-	for (const sel of catalogSelectors) {
-		try {
-			const el = await driver.wait(until.elementLocated(sel), 5000);
-			await driver.wait(until.elementIsVisible(el), 3000);
-			catalogEntry = el; break;
-		} catch (_) {}
-	}
-	if (!catalogEntry) throw new Error("Could not find 'Course catalog' entry");
+  // --- ÅBN MENU ---
+  const menuBtn = await driver.wait(
+    until.elementLocated(By.xpath("//button[@aria-label='Show Menu']")),
+    10000
+  );
+  await menuBtn.click();
 
-	// START TIMING: when clicking Course Catalog
-	const start = Date.now();
-	await catalogEntry.click();
+  // --- FIND COURSE CATALOG ---
+  const catalogBtn = await driver.wait(
+    until.elementLocated(By.xpath("//button[@aria-label='COURSE CATALOG']")),
+    10000
+  );
+  await driver.wait(until.elementIsVisible(catalogBtn), 5000);
 
-	// Consider catalog loaded when any of these are present/active
-	const loadedSelectors = [
-		By.xpath("//*[contains(@class,'catalog')]") ,
-		By.xpath("//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'all courses')]") ,
-		By.xpath("//*[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'course catalog')]") ,
-		By.css('[role="tabpanel"][aria-label*="catalog"]'),
-	];
+  // Scroll ind i view
+  await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", catalogBtn);
+  await new Promise(r => setTimeout(r, 500));
 
-	let loaded = false;
-	for (const sel of loadedSelectors) {
-		try {
-			await driver.wait(until.elementLocated(sel), 5000);
-			loaded = true; break;
-		} catch (_) {}
-	}
-	if (!loaded) {
-		// fallback small wait
-		await new Promise(r => setTimeout(r, 1000));
-	}
+  // --- START TIMER EFTER SUCCESFULDT KLIK ---
+  const start = Date.now();
+  let clicked = false;
 
-	const seconds = (Date.now() - start) / 1000;
-	console.log("⏱ Open Course Catalog took:", seconds, "seconds");
-	return seconds;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await catalogBtn.click();
+      clicked = true;
+      break;
+    } catch {
+      try {
+        await driver.executeScript("arguments[0].click();", catalogBtn);
+        clicked = true;
+        break;
+      } catch {
+        if (attempt === 2) throw new Error("❌ Could not click Course Catalog button");
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
+  }
+
+  if (!clicked) throw new Error("❌ Could not click Course Catalog");
+
+  // --- VENT PÅ CATALOG CONTENT ---
+  let loaded = false;
+  try {
+    await driver.wait(
+      until.elementLocated(By.xpath("//*[contains(text(),'Catalog') or contains(text(),'Course')]")),
+      5000
+    );
+    loaded = true;
+  } catch {}
+
+  if (!loaded) {
+    const url = await driver.getCurrentUrl();
+    if (url.includes("catalog")) loaded = true;
+  }
+
+  if (!loaded) throw new Error("❌ Course Catalog did not load in time");
+
+  // --- STOP TIMER ---
+  const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
+  console.log(`⏱ Course Catalog load took: ${seconds}s`);
+
+  await logCurrentState(driver, "Open Course Catalog");
+  await pauseForObservation(driver, "Course Catalog content loading", 2);
+
+  return seconds;
 }

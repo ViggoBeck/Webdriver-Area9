@@ -9,10 +9,18 @@
 		"show-accounts": "node src/show-accounts.js",
 		"priority": "node src/app.js priority",
 		"priority-watch": "node src/app.js priority --visible --slow",
-		"working": "node src/app.js working",
+		"working": "node src/app.js working --slow",
 		"working-watch": "node src/app.js working --visible --slow",
 		"all": "node src/app.js all",
-		"all-watch": "node src/app.js all --visible --slow"
+		"all-watch": "node src/app.js all --visible --slow",
+		"scorm": "node src/app.js single scorm --visible --slow",
+		"video": "node src/app.js single video --visible --slow",
+		"catalog": "node src/app.js single catalog --visible --slow",
+		"analytics": "node src/app.js single unique --visible --slow",
+		"project": "node src/app.js single project --visible --slow",
+		"class": "node src/app.js single class --visible --slow",
+		"create": "node src/app.js single create --visible --slow",
+		"clear-results": "> results.csv"
 	},
 	"keywords": [
 		"area9",

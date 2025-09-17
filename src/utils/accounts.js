@@ -36,28 +36,28 @@ const ACCOUNTS = {
 
 // Assign specific accounts to specific tests for consistency and no conflicts
 const TEST_ACCOUNT_ASSIGNMENTS = {
-	// Priority Tests (6 tests)
+	// Working Tests (13 tests)
 	"Login Learner": ACCOUNTS.learner[0],                    // A9-106821@area9.dk
 	"Login Educator": ACCOUNTS.educator[0],                  // A9-106816@area9.dk
 	"Login Curator": ACCOUNTS.curator[0],                    // A9-106810@area9.dk
 	"Communicator Learner": ACCOUNTS.learner[1],             // A9-106822@area9.dk
 	"Communicator Educator": ACCOUNTS.educator[1],           // A9-106817@area9.dk
-	"Open Course Catalog": ACCOUNTS.learner[2],              // A9-106823@area9.dk
-
-	// Additional Learner Tests
-	"Open SCORM": ACCOUNTS.learner[3],                       // A9-106824@area9.dk
-	"Open Video Probe": ACCOUNTS.learner[4],                 // A9-106825@area9.dk
-
-	// Additional Educator Tests
+	"Open SCORM": ACCOUNTS.learner[2],                       // A9-106823@area9.dk
 	"Open Review": ACCOUNTS.educator[2],                     // A9-106818@area9.dk
+
+	// Additional Future Tests (not yet implemented)
+	"Open Video Probe": ACCOUNTS.learner[3],                 // A9-106824@area9.dk
+	"Open Course Catalog": ACCOUNTS.learner[4],              // A9-106825@area9.dk (disabled - not working)
 	"Analytics Educator": ACCOUNTS.educator[3],              // A9-106819@area9.dk
-	"Open Class": ACCOUNTS.educator[4],                      // A9-106820@area9.dk
+	"Open Class": ACCOUNTS.educator[4],                     // A9-106820@area9.dk (avoid conflict with Communicator Educator)
 	"Create Class": ACCOUNTS.educator[0],                    // A9-106816@area9.dk (can reuse after Login test)
 	"Delete Class": ACCOUNTS.educator[1],                    // A9-106817@area9.dk (can reuse after Communicator test)
 
 	// Additional Curator Tests
 	"Analytics Curator - Unique Users": ACCOUNTS.curator[1], // A9-106811@area9.dk
-	"Analytics Curator - Project Team": ACCOUNTS.curator[2]  // A9-106812@area9.dk
+	"Open Unique Users Report": ACCOUNTS.curator[1],         // A9-106811@area9.dk (same as Analytics Curator - Unique Users)
+	"Analytics Curator - Project Team": ACCOUNTS.curator[2], // A9-106812@area9.dk
+	"Open Project Team Activity": ACCOUNTS.curator[2]        // A9-106812@area9.dk (same as Analytics Curator - Project Team)
 };
 
 export function getAccountForTest(testName) {
@@ -98,12 +98,12 @@ export function showAccountAssignments() {
 	console.log("=" .repeat(50));
 
 	Object.entries(TEST_ACCOUNT_ASSIGNMENTS).forEach(([testName, account]) => {
-		const role = account.includes('10821') || account.includes('10822') || account.includes('10823') ||
-								account.includes('10824') || account.includes('10825') || account.includes('10826') ||
-								account.includes('10827') || account.includes('10828') || account.includes('10829') ||
-								account.includes('10830') ? 'LEARNER' :
-								account.includes('10816') || account.includes('10817') || account.includes('10818') ||
-								account.includes('10819') || account.includes('10820') ? 'EDUCATOR' : 'CURATOR';
+		const role = account.includes('106821') || account.includes('106822') || account.includes('106823') ||
+								account.includes('106824') || account.includes('106825') || account.includes('106826') ||
+								account.includes('106827') || account.includes('106828') || account.includes('106829') ||
+								account.includes('106830') ? 'LEARNER' :
+								account.includes('106816') || account.includes('106817') || account.includes('106818') ||
+								account.includes('106819') || account.includes('106820') ? 'EDUCATOR' : 'CURATOR';
 
 		console.log(`${testName.padEnd(30)} → ${role.padEnd(8)} → ${account}`);
 	});
