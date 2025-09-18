@@ -42,6 +42,9 @@ async function clearSession(driver) {
 			throw windowError; // Re-throw if it's a different error
 		}
 
+		// More thorough session clearing for suite runs
+		console.log("🔄 Performing thorough session reset...");
+
 		// Clear all cookies, local storage, and session storage
 		await driver.manage().deleteAllCookies();
 
@@ -49,11 +52,23 @@ async function clearSession(driver) {
 		await driver.executeScript("window.localStorage.clear();");
 		await driver.executeScript("window.sessionStorage.clear();");
 
-		// Clear any cached data and reload
-		await driver.executeScript("window.location.reload(true);");
-
-		// Wait for any ongoing requests to complete
+		// Navigate to about:blank to reset page state
+		await driver.get("about:blank");
 		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		// Clear any cached data and ensure fresh state
+		await driver.executeScript("window.localStorage.clear();");
+		await driver.executeScript("window.sessionStorage.clear();");
+
+		// Additional cleanup - clear any remaining browser state
+		try {
+			await driver.manage().deleteAllCookies();
+		} catch (e) {
+			// Continue if cookie clearing fails
+		}
+
+		// Wait for cleanup to complete
+		await new Promise(resolve => setTimeout(resolve, 2000));
 
 		console.log("✅ Session cleared successfully");
 	} catch (error) {
@@ -89,6 +104,15 @@ const PRIORITY_TESTS = [
 	{ name: "Open Course Catalog", func: openCourseCatalog }
 ];
 
+// Learner-specific tests (all tests that use learner accounts with logout functionality)
+const LEARNER_TESTS = [
+	{ name: "Login Learner", func: loginLearner },
+	{ name: "Communicator Learner", func: communicatorLearner },
+	{ name: "Open SCORM", func: openScorm },
+	{ name: "Open Video Probe", func: openVideoProbe },
+	{ name: "Open Course Catalog", func: openCourseCatalog }
+];
+
 const ALL_TESTS = WORKING_TESTS;
 
 async function runTests(testSuite, suiteName, options = {}) {
@@ -100,13 +124,8 @@ async function runTests(testSuite, suiteName, options = {}) {
 	if (options.slowMode) {
 		console.log("🐌 Slow mode enabled - pauses between actions");
 	}
-	if (options.disableCache) {
-		console.log("🚫 Cache disabled - measuring cold load performance");
-	} else {
-		console.log("💾 Cache enabled - measuring warm load performance");
-	}
 
-	const driver = await createDriver(options.visible, options.slowMode, options.disableCache);
+	const driver = await createDriver(options.visible, options.slowMode);
 
 	try {
 		for (const test of testSuite) {
@@ -115,7 +134,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 		  console.log(`👤 Using account: ${assignedAccount}`);
 			try {
 				const time = await test.func(driver);
-				logResult(test.name, time, options.disableCache);
+				logResult(test.name, time);
 				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
 
 				if (options.slowMode) {
@@ -131,7 +150,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 				await new Promise(resolve => setTimeout(resolve, pauseTime));
 			} catch (testErr) {
 				console.error(`❌ Error in ${test.name}:`, testErr.message);
-				logResult(test.name, "ERROR", options.disableCache);
+				logResult(test.name, "ERROR");
 
 				if (options.slowMode) {
 					console.log("🐌 Slow mode: Pausing 3 seconds after error...");
@@ -162,6 +181,14 @@ async function runAllTests(options = {}) {
 	await runTests(ALL_TESTS, "All Tests", options);
 }
 
+
+
+async function runLearnerTests(options = {}) {
+	await runTests(LEARNER_TESTS, "Learner Tests", options);
+}
+
+
+
 // Check command line arguments to determine which tests to run
 const args = process.argv.slice(2);
 const command = args[0];
@@ -169,8 +196,7 @@ const command = args[0];
 // Parse options
 const options = {
 	visible: args.includes('--visible') || args.includes('-v'),
-	slowMode: args.includes('--slow') || args.includes('-s'),
-	disableCache: args.includes('--no-cache') || args.includes('--disable-cache') || args.includes('-nc')
+	slowMode: args.includes('--slow') || args.includes('-s')
 };
 
 switch (command) {
@@ -183,6 +209,10 @@ switch (command) {
 	case "all":
 		runAllTests(options);
 		break;
+	case "learners":
+		runLearnerTests(options);
+		break;
+
 	case "single":
 		// Run a single test by name
 		const testName = args[1];
@@ -202,15 +232,15 @@ Usage:
 	node src/app.js [command] [options]
 
 Commands:
-	priority       Run priority tests only (6 tests - core login, communicator, course catalog)
-	working        Run all working tests (13 tests including SCORM, Video, Catalog, Analytics, Classes, Review)
-	all           Run all working tests (same as 'working')
-	single <name> Run a single test by name (partial match)
+	priority         Run priority tests only (6 tests - core login, communicator, course catalog)
+	working          Run all working tests (13 tests including SCORM, Video, Catalog, Analytics, Classes, Review)
+	all             Run all working tests (same as 'working')
+	learners        Run learner tests only (5 tests - all tests using learner accounts with logout)
+	single <name>   Run a single test by name (partial match)
 
 Options:
 	--visible, -v           Show browser window (for watching tests run)
 	--slow, -s              Add pauses to observe what's happening
-	--no-cache, --disable-cache, -nc  Disable browser cache (test cold load performance)
 
 NPM Scripts:
 	npm run priority        Run priority tests (headless)
@@ -218,19 +248,21 @@ NPM Scripts:
 	npm run show-accounts   Show which account each test uses
 
 Examples:
-	node src/app.js priority                    # Run priority tests headless with cache
-	node src/app.js working --visible           # Run all working tests visible with cache
-	node src/app.js priority --no-cache         # Run priority tests without cache (cold load)
-	node src/app.js working --no-cache --visible # Run working tests without cache, visible
+	node src/app.js priority                    # Run priority tests headless
+	node src/app.js working --visible           # Run all working tests visible
+	node src/app.js learners --visible --slow   # Run all learner tests (visual + slow)
 	node src/app.js single "open review" -v -s  # Test review functionality (slow + visible)
-	node src/app.js single "login learner" -nc  # Test login without cache
-	node src/app.js priority --visible --slow   # Watch priority tests slowly with cache
+	node src/app.js single "login learner"      # Test login functionality
+	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
 Working Tests (13):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
 Priority Tests (6):
 ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
+
+Learner Tests (5):
+${LEARNER_TESTS.map(t => `  - ${t.name} (with logout)`).join('\n')}
 
 🔐 Account Management:
 Each test uses a unique account to prevent conflicts and enable parallel testing.

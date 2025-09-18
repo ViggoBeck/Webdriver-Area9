@@ -2,39 +2,107 @@ import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
+import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
 
 export async function openScorm(driver) {
 	// --- LOGIN (ikke timed) ---
+	console.log("🌐 Navigating to learner URL for SCORM test...");
 	await driver.get(buildLearnerUrl());
 
-	const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-  await emailField.sendKeys(getAccountForTest("Open SCORM"));
+	// Wait for page to fully load and stabilize
+	await new Promise(resolve => setTimeout(resolve, 3000));
 
-  const passwordField = await driver.findElement(By.css('input[name="password"]'));
-  await passwordField.sendKeys(DEFAULT_PASSWORD);
+	// Debug: Check current state
+	try {
+		const currentUrl = await driver.getCurrentUrl();
+		const pageTitle = await driver.getTitle();
+		console.log(`📍 Current URL: ${currentUrl}`);
+		console.log(`📄 Page title: ${pageTitle}`);
+	} catch (e) {
+		console.log("⚠️ Could not get page info");
+	}
 
-  const signInBtn = await driver.findElement(By.id("sign_in"));
-  await signInBtn.click();
+	// Look for login form with better error handling
+	console.log("🔍 Looking for login form...");
+	let needsLogin = false;
+	try {
+		const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
+		console.log("✅ Login form found, proceeding with login...");
+		await emailField.sendKeys(getAccountForTest("Open SCORM"));
+		needsLogin = true;
+	} catch (error) {
+		// Enhanced error handling - check if we're already logged in
+		console.log("⚠️ Login form not found, checking if already logged in...");
 
-  await driver.wait(until.stalenessOf(signInBtn), DEFAULT_TIMEOUT).catch(() => {});
+		const loginForms = await driver.findElements(By.css('input[name="username"]'));
+		const dashboardElements = await driver.findElements(By.xpath("//*[text()='LEARN' or text()='TO-DO']"));
 
-  // --- DASHBOARD ---
-  await driver.wait(
-  	until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
-  	DEFAULT_TIMEOUT
-  );
+		console.log(`🔍 Login forms found: ${loginForms.length}`);
+		console.log(`🔍 Dashboard elements found: ${dashboardElements.length}`);
 
-  // --- ONBOARDING OVERLAY ---
-  try {
-    const gotItCandidates = await driver.findElements(By.xpath("//*[normalize-space(text())='GOT IT']"));
-    for (let btn of gotItCandidates) {
-      if (await btn.isDisplayed()) {
-        await driver.executeScript("arguments[0].click();", btn);
-        await driver.wait(until.stalenessOf(btn), 10000);
-        break;
-      }
-    }
-  } catch {}
+		if (dashboardElements.length > 0) {
+			console.log("✅ Already logged in, skipping login process...");
+			// Already on dashboard, continue with SCORM card clicking
+		} else {
+			// Force navigation back to login
+			console.log("🔄 Forcing fresh navigation to login page...");
+			await driver.get(buildLearnerUrl());
+			await new Promise(resolve => setTimeout(resolve, 4000));
+
+			const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
+			await emailField.sendKeys(getAccountForTest("Open SCORM"));
+
+			// Complete login process
+			const passwordField = await driver.findElement(By.css('input[name="password"]'));
+			await passwordField.sendKeys(DEFAULT_PASSWORD);
+
+			const signInBtn = await driver.findElement(By.id("sign_in"));
+			await signInBtn.click();
+
+			await driver.wait(until.stalenessOf(signInBtn), DEFAULT_TIMEOUT).catch(() => {});
+
+			// Wait for dashboard
+			await driver.wait(
+				until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
+				DEFAULT_TIMEOUT
+			);
+			console.log("✅ Login completed, dashboard loaded");
+		}
+	}
+
+	// Complete login if we found the login form initially
+	if (needsLogin) {
+		console.log("🔐 Completing login process...");
+		const passwordField = await driver.findElement(By.css('input[name="password"]'));
+		await passwordField.sendKeys(DEFAULT_PASSWORD);
+
+		const signInBtn = await driver.findElement(By.id("sign_in"));
+		await signInBtn.click();
+
+		await driver.wait(until.stalenessOf(signInBtn), DEFAULT_TIMEOUT).catch(() => {});
+
+		// Wait for dashboard
+		await driver.wait(
+			until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
+			DEFAULT_TIMEOUT
+		);
+		console.log("✅ Login completed, dashboard loaded");
+	}
+
+	// Ensure we're on dashboard (whether we just logged in or were already logged in)
+	console.log("🔍 Verifying dashboard is loaded...");
+	try {
+		await driver.wait(
+			until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
+			DEFAULT_TIMEOUT
+		);
+		console.log("✅ Dashboard confirmed loaded");
+	} catch (e) {
+		console.log("⚠️ Dashboard verification failed, but continuing...");
+	}
+
+  // --- DISMISS OVERLAY USING SHARED FUNCTION ---
+  await dismissLearnerOverlay(driver);
 
   // --- SCORM CARD ---
   const scormCardXPath = `
@@ -80,11 +148,14 @@ export async function openScorm(driver) {
   if (!scormLoaded) throw new Error("SCORM did not load in time");
 
   // --- STOP TIMER ---
-  const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
+  const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
   console.log(`⏱ SCORM load took: ${seconds}s`);
 
   await logCurrentState(driver, "Open SCORM");
   await pauseForObservation(driver, "SCORM content loading", 3);
+
+  // Perform logout after test completion
+  await performLearnerLogout(driver);
 
   return seconds;
 }

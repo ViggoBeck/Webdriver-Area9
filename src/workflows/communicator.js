@@ -1,6 +1,8 @@
 import { By, until } from "selenium-webdriver";
 import { performLogin, waitForSuccessfulLogin } from "../utils/login.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 
 async function waitForCommunicatorUI(driver) {
 	// Look for communicator-specific elements
@@ -55,7 +57,18 @@ export async function communicatorLearner(driver) {
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
 
-	console.log("⏱ Communicator Learner tog:", seconds, "sekunder");
+	console.log("⏱ Communicator Learner took:", seconds.toFixed(3), "seconds");
+
+	// Handle overlay dismissal and logout after timing is complete
+	await logCurrentState(driver, "Communicator Learner");
+	await pauseForObservation(driver, "Communicator UI loaded", 2);
+
+	// Dismiss any onboarding overlays
+	await dismissLearnerOverlay(driver);
+
+	// Perform logout
+	await performLearnerLogout(driver);
+
 	return seconds;
 }
 

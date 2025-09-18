@@ -2,6 +2,7 @@ import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
+import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
 
 export async function openVideoProbe(driver) {
 	// --- LOGIN (ikke timed) ---
@@ -24,17 +25,8 @@ export async function openVideoProbe(driver) {
   	DEFAULT_TIMEOUT
   );
 
-  // --- OVERLAY ---
-  try {
-    const gotItCandidates = await driver.findElements(By.xpath("//*[normalize-space(text())='GOT IT']"));
-    for (let btn of gotItCandidates) {
-      if (await btn.isDisplayed()) {
-        await driver.executeScript("arguments[0].click();", btn);
-        await driver.wait(until.stalenessOf(btn), 10000);
-        break;
-      }
-    }
-  } catch {}
+  // --- DISMISS OVERLAY USING SHARED FUNCTION ---
+  await dismissLearnerOverlay(driver);
 
   // --- FIND VIDEO BENCHMARK CARD ---
   const videoCardXPath = `
@@ -80,11 +72,14 @@ export async function openVideoProbe(driver) {
   if (!videoLoaded) throw new Error("Video probe did not load in time");
 
   // --- STOP TIMER ---
-  const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
+  const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
   console.log(`⏱ Video probe load took: ${seconds}s`);
 
   await logCurrentState(driver, "Open Video Probe");
   await pauseForObservation(driver, "Video probe content loading", 3);
+
+  // Perform logout after test completion
+  await performLearnerLogout(driver);
 
   return seconds;
 }

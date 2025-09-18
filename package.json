@@ -20,14 +20,9 @@
 		"project": "node src/app.js single project --visible --slow",
 		"class": "node src/app.js single class --visible --slow",
 		"create": "node src/app.js single create --visible --slow",
-		"priority-cold": "node src/app.js priority --no-cache",
-		"priority-cold-watch": "node src/app.js priority --no-cache --visible --slow",
-		"working-cold": "node src/app.js working --no-cache --slow",
-		"working-cold-watch": "node src/app.js working --no-cache --visible --slow",
-		"clear-results": "> results.csv",
-		"clear-results-warm": "> results/results-warm.csv",
-		"clear-results-cold": "> results/results-cold.csv",
-		"clear-results-all": "> results.csv && > results/results-all.csv && > results/results-warm.csv && > results/results-cold.csv"
+		"learners": "node src/app.js learners --slow",
+		"learners-watch": "node src/app.js learners --visible --slow",
+		"clear-results": "> results.csv"
 	},
 	"keywords": [
 		"area9",

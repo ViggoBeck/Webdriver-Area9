@@ -1,7 +1,7 @@
 import { Builder } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome.js";
 
-export async function createDriver(visible = false, slowMode = false, disableCache = false) {
+export async function createDriver(visible = false, slowMode = false) {
 	const options = new chrome.Options();
 
 	// Base Chrome options for all modes
@@ -10,29 +10,6 @@ export async function createDriver(visible = false, slowMode = false, disableCac
 		'--disable-web-security',
 		'--allow-running-insecure-content'
 	];
-
-	// Cache control options
-	if (disableCache) {
-		const noCacheOptions = [
-			'--disable-application-cache',
-			'--disable-background-networking',
-			'--disable-default-apps',
-			'--disable-extensions',
-			'--disable-sync',
-			'--disable-translate',
-			'--disable-plugins',
-			'--disk-cache-size=1',
-			'--media-cache-size=1',
-			'--aggressive-cache-discard',
-			'--disable-background-timer-throttling',
-			'--disable-renderer-backgrounding',
-			'--disable-backgrounding-occluded-windows'
-		];
-		baseOptions.push(...noCacheOptions);
-		console.log("🚫 Cache disabled - testing cold load performance");
-	} else {
-		console.log("💾 Cache enabled - testing warm load performance");
-	}
 
 	// Add mode-specific options
 	if (!visible) {
@@ -61,22 +38,7 @@ export async function createDriver(visible = false, slowMode = false, disableCac
 			.setChromeOptions(options)
 			.build();
 
-		// Additional cache disabling via Chrome DevTools Protocol
-		if (disableCache) {
-			try {
-				// Enable Network domain and disable cache
-				await driver.executeScript(`
-					if (window.chrome && window.chrome.debugger) {
-						chrome.debugger.attach({tabId: chrome.tabs.getCurrent().id}, "1.0");
-						chrome.debugger.sendCommand({tabId: chrome.tabs.getCurrent().id}, "Network.enable");
-						chrome.debugger.sendCommand({tabId: chrome.tabs.getCurrent().id}, "Network.setCacheDisabled", {cacheDisabled: true});
-					}
-				`);
-			} catch (debugError) {
-				// DevTools approach failed, but driver still works with command-line options
-				console.log("⚠️ DevTools cache disable failed (using command-line options only)");
-			}
-		}
+
 
 		return driver;
 	} catch (error) {

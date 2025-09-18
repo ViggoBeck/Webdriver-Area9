@@ -33,18 +33,18 @@ node src/app.js single "login learner" --visible --slow
 ### ✅ Working Tests (13)
 
 #### **Authentication & Core (3 tests)**
-- **Login Learner** (~3-6s) - Learner dashboard login flow with onboarding overlay dismissal and automatic logout
+- **Login Learner** (~3-6s) - Learner dashboard login flow with overlay dismissal and automatic logout
 - **Login Educator** (~3s) - Educator dashboard login flow
 - **Login Curator** (~3s) - Curator dashboard login flow
 
 #### **Communication (2 tests)**
-- **Communicator Learner** (~6-9s) - Learner communication interface
+- **Communicator Learner** (~6-9s) - Learner communication interface with overlay dismissal and logout
 - **Communicator Educator** (~6-17s) - Educator communication interface
 
 #### **Content Navigation (4 tests)**
-- **Open SCORM** (~2-8s) - SCORM content loading in TO-DO section
-- **Open Video Probe** (~1-5s) - Video content loading performance
-- **Open Course Catalog** (~1s) - Course catalog navigation speed
+- **Open SCORM** (~2-8s) - SCORM content loading with overlay dismissal and logout
+- **Open Video Probe** (~1-5s) - Video content loading with overlay dismissal and logout
+- **Open Course Catalog** (~1s) - Course catalog navigation with overlay dismissal and logout
 - **Open Review** (~4s) - Review functionality access
 
 #### **Analytics & Reports (2 tests)**
@@ -57,6 +57,14 @@ node src/app.js single "login learner" --visible --slow
 
 ### 🎯 Priority Tests (6)
 Core functionality that forms the foundation: Login (3) + Communication (2) + Course Catalog (1)
+
+### 🧑‍🎓 Learner Tests (5) - NEW!
+All tests using learner accounts with complete overlay dismissal and logout functionality:
+- **Login Learner** (~3-6s) - Dashboard login with overlay dismissal and logout
+- **Communicator Learner** (~6-9s) - Message interface with logout
+- **Open SCORM** (~2-8s) - SCORM content loading with logout
+- **Open Video Probe** (~1-5s) - Video content loading with logout
+- **Open Course Catalog** (~1s) - Course catalog navigation with logout
 
 ## Commands
 
@@ -71,6 +79,16 @@ Core functionality that forms the foundation: Login (3) + Communication (2) + Co
 | `npm run working-watch` | Run all working tests (visible + slow with cache) |
 | `npm run working-cold` | Run all working tests without cache (cold load performance) |
 | `npm run working-cold-watch` | Run all working tests without cache (visible + slow) |
+| **`npm run learners`** | **🧑‍🎓 Run all 5 learner tests (headless with cache)** |
+| **`npm run learners-watch`** | **🧑‍🎓 Run learner tests (visible + slow with cache)** |
+| **`npm run learners-cold`** | **🧑‍🎓 Run learner tests without cache (cold load performance)** |
+| **`npm run learners-cold-watch`** | **🧑‍🎓 Run learner tests without cache (visible + slow)** |
+| **`npm run compare-priority`** | **🔬 Run each priority test twice: NO-CACHE → CACHE** |
+| **`npm run compare-priority-watch`** | **🔬 Priority cache comparison (visible + slow)** |
+| **`npm run compare-working`** | **🔬 Run each working test twice: NO-CACHE → CACHE** |
+| **`npm run compare-working-watch`** | **🔬 Working cache comparison (visible + slow)** |
+| **`npm run compare-learners`** | **🔬 Run each learner test twice: NO-CACHE → CACHE** |
+| **`npm run compare-learners-watch`** | **🔬 Learner cache comparison (visible + slow)** |
 | `npm run show-accounts` | Display account assignments |
 
 ### **Individual Test Commands**
@@ -93,6 +111,16 @@ Core functionality that forms the foundation: Login (3) + Communication (2) + Co
 | `npm run clear-results-all` | Clear all result files (warm, cold, all, legacy) |
 | `npm run show-accounts` | Show account assignments for each test |
 
+### **🔬 Cache Performance Analysis Commands**
+| Command | Description |
+|---------|-------------|
+| `npm run compare-priority` | Compare 6 priority tests: cold → warm in same browser (headless) |
+| `npm run compare-priority-watch` | Compare priority tests with visual observation (same browser) |
+| `npm run compare-working` | Compare all 13 tests: cold → warm in same browser (headless) |
+| `npm run compare-working-watch` | Compare all tests with visual observation (same browser) |
+| `npm run compare-learners` | Compare 5 learner tests: cold → warm in same browser (headless) |
+| `npm run compare-learners-watch` | Compare learner tests with visual observation (same browser) |
+
 ### **Cache Control Testing**
 
 The framework supports testing both **cold load** (no cache) and **warm load** (with cache) performance:
@@ -114,11 +142,51 @@ node src/app.js single "login learner" --no-cache -v    # Cold load login test
 node src/app.js single "open scorm" -nc --visible       # Cold load SCORM test
 ```
 
+### **🔬 Cache Comparison Mode (NEW!)**
+
+**Run each test twice in the SAME BROWSER for true cache comparison:**
+
+```bash
+# True Cache Comparison (COLD LOAD → WARM LOAD in same browser session)
+npm run compare-priority          # Compare priority tests: cold → warm
+npm run compare-priority-watch    # Visual priority comparison
+npm run compare-working           # Compare all tests: cold → warm
+npm run compare-working-watch     # Visual working comparison
+
+# Advanced usage
+node src/app.js cache-compare priority --visible  # Watch priority comparisons
+node src/app.js cache-compare working             # All tests comparison
+```
+
+**How It Works:**
+1. **🌐 Single Browser Session**: Creates one browser with cache enabled
+2. **❄️ Cold Load**: First test run (populates cache)
+3. **🔥 Warm Load**: Second test run in same browser (benefits from cache)
+4. **📊 True Comparison**: Measures actual cache performance difference
+
+**Example Output:**
+```
+🔬 === Login Learner Performance Comparison ===
+❄️  ROUND 1: Login Learner (COLD LOAD - First Visit)
+❄️  COLD LOAD: Login Learner completed: 3.216s
+📥 Cache now populated for warm load test...
+
+🔥 ROUND 2: Login Learner (WARM LOAD - Cache Benefits)
+🔥 WARM LOAD: Login Learner completed: 2.891s
+
+📊 === Login Learner PERFORMANCE SUMMARY ===
+❄️  Cold Load (first visit): 3.216s
+🔥 Warm Load (cached):      2.891s
+⚡ Cache Improvement:       -0.325s (10.1% faster)
+==================================================
+```
+
 **Cache Control Features:**
 - 🚫 **Complete cache disabling**: Application cache, disk cache, media cache
 - 🧹 **Background process disabling**: Extensions, sync, default apps
-- ⚡ **Performance comparison**: Easy A/B testing of cold vs warm performance
-- 📊 **Separate metrics**: Results show whether cache was enabled/disabled
+- ⚡ **Automatic comparison**: Each test runs NO-CACHE → CACHE in sequence
+- 📊 **Immediate results**: See cache impact for each test instantly
+- 🔬 **Performance analysis**: Automatic improvement calculations
 
 ### **Advanced Usage**
 ```bash
@@ -133,6 +201,11 @@ node src/app.js working                           # Headless mode with cache
 node src/app.js working --no-cache                # Headless mode without cache
 node src/app.js working --visible                 # Watch browser with cache
 node src/app.js working --visible --no-cache      # Watch browser without cache
+
+# Cache comparison modes
+node src/app.js cache-compare priority            # Compare priority tests automatically
+node src/app.js cache-compare working --visible   # Watch all test comparisons
+node src/app.js cache-compare priority -v -s      # Visual + slow cache comparison
 
 # Combined options
 node src/app.js single "create class" -v -s -nc   # Visual + slow + no cache
@@ -274,16 +347,17 @@ src/
 │   ├── config.js                  # Environment configuration & URL builders
 │   ├── debug-helpers.js           # Visual testing helpers
 │   ├── driver.js                  # Chrome WebDriver setup
+│   ├── learner-utils.js           # Shared learner overlay dismissal and logout utilities
 │   ├── log.js                     # Results logging to CSV
 │   └── login.js                   # Shared login utilities
 └── workflows/
-	├── loginLearner.js            # Learner login test (~3-6s)
+	├── loginLearner.js            # Learner login with overlay dismissal and logout (~3-6s)
 	├── loginEducator.js           # Educator login test (~3s)
 	├── loginCurator.js            # Curator login test (~3s)
-	├── communicator.js            # Communication tests (learner/educator)
-	├── openScorm.js               # SCORM content loading (~2-8s)
-	├── openVideoProbe.js          # Video content loading (~1-5s)
-	├── openCourseCatalog.js       # Course catalog navigation (~1s)
+	├── communicator.js            # Communication tests with learner logout support
+	├── openScorm.js               # SCORM content loading with overlay dismissal and logout (~2-8s)
+	├── openVideoProbe.js          # Video content loading with overlay dismissal and logout (~1-5s)
+	├── openCourseCatalog.js       # Course catalog navigation with overlay dismissal and logout (~1s)
 	├── openUniqueUsersReport.js   # Curator analytics: unique users (~0.1-5s)
 	├── OpenProjectTeam.js         # Curator analytics: project teams (~0.3-5s)
 	├── openClass.js               # Educator class dashboard (~0.9-8s)
@@ -365,11 +439,12 @@ stage('Performance Tests') {
 - ✅ **Fallback detection**: URL changes, content loading, navigation confirmation
 
 ### **UI Interaction Handling**
-- ✅ **Enhanced overlay dismissal**: Comprehensive handling of onboarding overlays ("GOT IT", "OK", "Close", "Skip")
+- ✅ **Comprehensive overlay dismissal**: All learner workflows handle onboarding overlays ("GOT IT", "OK", "Close", "Skip")
+- ✅ **Universal logout**: All learner workflows include automatic logout for clean session management
 - ✅ **JavaScript clicks**: Fallback clicks when normal clicks fail
 - ✅ **Scroll into view**: Ensures elements are visible before interaction
 - ✅ **Form validation**: Waits for buttons to become enabled
-- ✅ **Session management**: Login Learner test includes overlay dismissal and automatic logout for clean sessions
+- ✅ **Shared utilities**: Consistent overlay and logout handling across all learner tests
 
 ### **Performance Measurement**
 - ✅ **Precise timing**: Millisecond accuracy with proper start/stop points
