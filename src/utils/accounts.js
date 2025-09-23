@@ -63,7 +63,9 @@ const TEST_ACCOUNT_ASSIGNMENTS = {
 	"SCORM Cache": ACCOUNTS.learner[2],                      // A9-106823@area9.dk (same as Open SCORM)
 	"Video Probe Cache": ACCOUNTS.learner[3],               // A9-106824@area9.dk (same as Open Video Probe)
 	"Review Cache": ACCOUNTS.educator[2],                   // A9-106818@area9.dk (same as Open Review)
-	"Course Catalog Cache": ACCOUNTS.learner[4]             // A9-106825@area9.dk (same as Open Course Catalog)
+	"Course Catalog Cache": ACCOUNTS.learner[4],            // A9-106825@area9.dk (same as Open Course Catalog)
+	"Create Class Cache": ACCOUNTS.educator[0],             // A9-106816@area9.dk (same as Create Class)
+	"Open Class Cache": ACCOUNTS.educator[4]                // A9-106820@area9.dk (same as Open Class)
 };
 
 export function getAccountForTest(testName) {
