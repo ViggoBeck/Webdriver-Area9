@@ -11,6 +11,10 @@ import { openProjectTeamActivity } from "./workflows/OpenProjectTeam.js";
 import { openClass } from "./workflows/openClass.js";
 import { createClass } from "./workflows/createClass.js";
 import { openReview } from "./workflows/openReview.js";
+import { compareScorm } from "./workflowsCache/compareScorm.js";
+import { compareVideoProbe } from "./workflowsCache/compareVideoProbe.js";
+import { compareReview } from "./workflowsCache/compareReview.js";
+import { compareCourseCatalog } from "./workflowsCache/compareCourseCatalog.js";
 import { logResult } from "./utils/log.js";
 import { getAccountForTest } from "./utils/accounts.js";
 import { validateConfig } from "./utils/config.js";
@@ -115,6 +119,14 @@ const LEARNER_TESTS = [
 
 const ALL_TESTS = WORKING_TESTS;
 
+// Cache comparison tests (cold vs warm in same session)
+const CACHE_TESTS = [
+	{ name: "SCORM Cache", func: compareScorm },
+	{ name: "Video Probe Cache", func: compareVideoProbe },
+	{ name: "Review Cache", func: compareReview },
+	{ name: "Course Catalog Cache", func: compareCourseCatalog }
+];
+
 async function runTests(testSuite, suiteName, options = {}) {
 	console.log(`\n🚀 Starting ${suiteName}...`);
 
@@ -134,7 +146,13 @@ async function runTests(testSuite, suiteName, options = {}) {
 		  console.log(`👤 Using account: ${assignedAccount}`);
 			try {
 				const time = await test.func(driver);
-				logResult(test.name, time);
+
+				// Cache tests handle their own logging internally
+				const isCacheTest = testSuite === CACHE_TESTS;
+				if (!isCacheTest) {
+					logResult(test.name, time);
+				}
+
 				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
 
 				if (options.slowMode) {
@@ -142,8 +160,10 @@ async function runTests(testSuite, suiteName, options = {}) {
 					await new Promise(resolve => setTimeout(resolve, 5000));
 				}
 
-				// Clear session between tests to ensure clean state
-				await clearSession(driver);
+				// Clear session between tests to ensure clean state (skip for cache tests)
+				if (!isCacheTest) {
+					await clearSession(driver);
+				}
 
 				// Longer pause between tests to avoid overwhelming the server (especially in batch mode)
 				const pauseTime = options.slowMode ? 5000 : 3000;
@@ -187,6 +207,10 @@ async function runLearnerTests(options = {}) {
 	await runTests(LEARNER_TESTS, "Learner Tests", options);
 }
 
+async function runCacheTests(options = {}) {
+	await runTests(CACHE_TESTS, "Cache Comparison Tests", options);
+}
+
 
 
 // Check command line arguments to determine which tests to run
@@ -212,18 +236,34 @@ switch (command) {
 	case "learners":
 		runLearnerTests(options);
 		break;
+	case "cache":
+		runCacheTests(options);
+		break;
 
 	case "single":
 		// Run a single test by name
 		const testName = args[1];
+
+		// Check cache tests first
+		const cacheTest = CACHE_TESTS.find(t => t.name.toLowerCase().includes(testName?.toLowerCase()));
+		if (cacheTest) {
+			runTests([cacheTest], `Single Cache Test: ${cacheTest.name}`, options);
+			break;
+		}
+
+		// Check regular tests
 		const test = ALL_TESTS.find(t => t.name.toLowerCase().includes(testName?.toLowerCase()));
 		if (test) {
 			runTests([test], `Single Test: ${test.name}`, options);
 		} else {
 			console.log("❌ Test not found. Available tests:");
+			console.log("\nRegular Tests:");
 			ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
+			console.log("\nCache Tests:");
+			CACHE_TESTS.forEach(t => console.log(`  - ${t.name}`));
 		}
 		break;
+
 	default:
 		console.log(`
 📋 Area9 Performance Test Suite
@@ -236,7 +276,8 @@ Commands:
 	working          Run all working tests (13 tests including SCORM, Video, Catalog, Analytics, Classes, Review)
 	all             Run all working tests (same as 'working')
 	learners        Run learner tests only (5 tests - all tests using learner accounts with logout)
-	single <name>   Run a single test by name (partial match)
+	cache           Run cache comparison tests (cold vs warm in same session)
+	single <name>   Run a single test by name (partial match - works for both regular and cache tests)
 
 Options:
 	--visible, -v           Show browser window (for watching tests run)
@@ -251,6 +292,9 @@ Examples:
 	node src/app.js priority                    # Run priority tests headless
 	node src/app.js working --visible           # Run all working tests visible
 	node src/app.js learners --visible --slow   # Run all learner tests (visual + slow)
+	node src/app.js cache --visible --slow      # Run cache comparison tests (visual + slow)
+	node src/app.js single "video" --visible    # Run just Video Probe cache comparison
+	node src/app.js single "scorm" --visible    # Run just SCORM cache comparison
 	node src/app.js single "open review" -v -s  # Test review functionality (slow + visible)
 	node src/app.js single "login learner"      # Test login functionality
 	node src/app.js priority --visible --slow   # Watch priority tests slowly
@@ -264,9 +308,12 @@ ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
 Learner Tests (5):
 ${LEARNER_TESTS.map(t => `  - ${t.name} (with logout)`).join('\n')}
 
+Cache Comparison Tests (Cold vs Warm):
+${CACHE_TESTS.map(t => `  - ${t.name} (same session)`).join('\n')}
+
 🔐 Account Management:
 Each test uses a unique account to prevent conflicts and enable parallel testing.
 Use 'npm run show-accounts' to see the complete account assignment matrix.
 		`);
 		break;
-}
+} 
