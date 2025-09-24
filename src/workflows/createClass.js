@@ -133,7 +133,7 @@ export async function createClass(driver) {
 	}
 
 	// --- START TIMER + ENTER CLASS NAME ---
-	console.log("🚀 Starting timer - entering class name 'Test'...");
+	console.log("🚀 Starting timer - entering class name 'Webdriver'...");
 	const start = Date.now();
 
 	// Scroll name input into view and click it to focus
@@ -148,10 +148,10 @@ export async function createClass(driver) {
 		console.log("✅ Focused name input field via JS");
 	}
 
-	// Clear any existing text and enter "Test"
+	// Clear any existing text and enter "Webdriver"
 	await nameInput.clear();
-	await nameInput.sendKeys("Test");
-	console.log("✅ Entered 'Test' as class name");
+	await nameInput.sendKeys("Webdriver");
+	console.log("✅ Entered 'Webdriver' as class name");
 
 	// --- LOCATE AND CLICK SAVE BUTTON ---
 	console.log("🔍 Looking for SAVE button...");
@@ -224,13 +224,13 @@ export async function createClass(driver) {
 
 	const classCreatedSelectors = [
 		// Look for the new class in the class list
-		By.xpath("//*[contains(text(),'Test') and (ancestor::tr or ancestor::div[contains(@style,'cursor: pointer')])]"),
+		By.xpath("//*[contains(text(),'Webdriver') and (ancestor::tr or ancestor::div[contains(@style,'cursor: pointer')])]"),
 
 		// Look for success message or confirmation
 		By.xpath("//*[contains(text(),'created') or contains(text(),'Created') or contains(text(),'success')]"),
 
 		// Look for class management UI
-		By.xpath("//*[contains(text(),'Class') and contains(text(),'Test')]"),
+		By.xpath("//*[contains(text(),'Class') and contains(text(),'Webdriver')]"),
 
 		// Check if we're back to class list or in new class
 		By.xpath("//tr[@role='row'] | //div[contains(@class,'class')] | //*[contains(text(),'Classes')]"),
@@ -275,7 +275,7 @@ export async function createClass(driver) {
 	console.log(`⏱ Class creation took: ${seconds}s`);
 
 	await logCurrentState(driver, "Create Class");
-	await pauseForObservation(driver, "Class 'Test' created successfully", 3);
+	await pauseForObservation(driver, "Class 'Webdriver' created successfully", 3);
 
 	return seconds;
 }

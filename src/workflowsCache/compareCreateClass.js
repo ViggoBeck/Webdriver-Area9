@@ -5,7 +5,7 @@ import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js"
 import { logResult } from "../utils/log.js";
 
 // Single class creation process (assumes already on educator dashboard)
-async function createSingleClass(driver, className = "Test") {
+async function createSingleClass(driver, className = "Webdriver") {
 	console.log(`🎯 Measuring class creation process for "${className}"...`);
 
 	// --- LOCATE ADD/CREATE CLASS BUTTON (same as createClass.js) ---
@@ -294,7 +294,7 @@ export async function compareCreateClass(driver) {
 
 	// COLD: First class creation
 	console.log("\n❄️  Create Class — COLD (first creation)");
-	const cold = await createSingleClass(driver, "TestCold");
+	const cold = await createSingleClass(driver, "WebdriverCold");
 	logResult("Create Class (cold)", cold);
 
 	// Navigate back to classes list/dashboard to create another class
@@ -322,7 +322,7 @@ export async function compareCreateClass(driver) {
 
 	// WARM: Second class creation (benefits from cache)
 	console.log("\n🔥 Create Class — WARM (second creation, cached)");
-	const warm = await createSingleClass(driver, "TestWarm");
+	const warm = await createSingleClass(driver, "WebdriverWarm");
 	logResult("Create Class (warm)", warm);
 
 	// === SUMMARY ===

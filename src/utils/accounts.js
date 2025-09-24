@@ -51,7 +51,7 @@ const TEST_ACCOUNT_ASSIGNMENTS = {
 	"Analytics Educator": ACCOUNTS.educator[3],              // A9-106819@area9.dk
 	"Open Class": ACCOUNTS.educator[4],                     // A9-106820@area9.dk (avoid conflict with Communicator Educator)
 	"Create Class": ACCOUNTS.educator[0],                    // A9-106816@area9.dk (can reuse after Login test)
-	"Delete Class": ACCOUNTS.educator[1],                    // A9-106817@area9.dk (can reuse after Communicator test)
+	"Delete Class": ACCOUNTS.educator[0],                    // A9-106816@area9.dk (same as Create Class to delete created tests)
 
 	// Additional Curator Tests
 	"Analytics Curator - Unique Users": ACCOUNTS.curator[1], // A9-106811@area9.dk

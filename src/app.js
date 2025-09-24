@@ -11,6 +11,7 @@ import { openProjectTeamActivity } from "./workflows/OpenProjectTeam.js";
 import { openClass } from "./workflows/openClass.js";
 import { createClass } from "./workflows/createClass.js";
 import { openReview } from "./workflows/openReview.js";
+import { deleteClass } from "./workflows/deleteClass.js";
 import { compareScorm } from "./workflowsCache/compareScorm.js";
 import { compareVideoProbe } from "./workflowsCache/compareVideoProbe.js";
 import { compareReview } from "./workflowsCache/compareReview.js";
@@ -97,6 +98,7 @@ const WORKING_TESTS = [
 	{ name: "Open Project Team Activity", func: openProjectTeamActivity },
 	{ name: "Open Class", func: openClass },
 	{ name: "Create Class", func: createClass },
+	{ name: "Delete Class", func: deleteClass },
 	{ name: "Open Review", func: openReview }
 ];
 
@@ -277,7 +279,7 @@ Usage:
 
 Commands:
 	priority         Run priority tests only (6 tests - core login, communicator, course catalog)
-	working          Run all working tests (13 tests including SCORM, Video, Catalog, Analytics, Classes, Review)
+	working          Run all working tests (14 tests including SCORM, Video, Catalog, Analytics, Classes, Review, Delete)
 	all             Run all working tests (same as 'working')
 	learners        Run learner tests only (5 tests - all tests using learner accounts with logout)
 	cache           Run cache comparison tests (cold vs warm in same session)
@@ -303,7 +305,7 @@ Examples:
 	node src/app.js single "login learner"      # Test login functionality
 	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
-Working Tests (13):
+Working Tests (14):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
 Priority Tests (6):
