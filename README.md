@@ -1,536 +1,110 @@
 # Area9 Performance Test Suite
 
-Automated performance testing framework for the Area9 learning platform with comprehensive coverage of core functionality including logins, content navigation, analytics, and class management.
+Automated performance testing for Area9 learning platform.
 
-## Quick Start
+## Quick Setup
 
-### 1. Setup Environment
 ```bash
-# Install dependencies
+# 1. Install
 npm install
 
-# Copy environment template
+# 2. Set password
 cp .env.example .env
+# Edit .env and add your password: DEFAULT_PASSWORD=your_password_here
 
-# Edit .env with your actual password
-# DEFAULT_PASSWORD=your_actual_password
+# 3. Run tests
+npm run priority-watch
 ```
 
-### 2. Run Tests
+## Basic Commands
+
 ```bash
-# Run 6 priority tests (core functionality)
+# Watch 6 priority tests (recommended for first time)
 npm run priority-watch
 
-# Run all 13 working tests
+# Run all 14 tests (watch mode)
 npm run working-watch
 
-# Run single test
+# Run cache comparison tests (visible)
+node src/app.js cache --visible --slow
+
+# Run specific test
 node src/app.js single "login learner" --visible --slow
 ```
 
-## Available Tests
+## Available Tests (14 total)
 
-### ✅ Working Tests (13)
+### Regular Tests
+- **Login Learner** (~4s) - Student login
+- **Login Educator** (~3s) - Teacher login
+- **Login Curator** (~3s) - Admin login
+- **Communicator Learner** (~7s) - Student messaging
+- **Communicator Educator** (~10s) - Teacher messaging
+- **Open SCORM** (~2s) - Learning content
+- **Open Video Probe** (~2s) - Video content
+- **Open Course Catalog** (~1s) - Course browsing
+- **Open Review** (~4s) - Review system
+- **Open Unique Users Report** (~0.5s) - User analytics
+- **Open Project Team Activity** (~0.5s) - Team analytics
+- **Open Class** (~1s) - Class dashboard
+- **Create Class** (~1s) - Create new class
+- **Delete Class** (~2s) - Clean up test data
 
-#### **Authentication & Core (3 tests)**
-- **Login Learner** (~3-6s) - Learner dashboard login flow with overlay dismissal and automatic logout
-- **Login Educator** (~3s) - Educator dashboard login flow
-- **Login Curator** (~3s) - Curator dashboard login flow
-
-#### **Communication (2 tests)**
-- **Communicator Learner** (~6-9s) - Learner communication interface with overlay dismissal and logout
-- **Communicator Educator** (~6-17s) - Educator communication interface
-
-#### **Content Navigation (4 tests)**
-- **Open SCORM** (~2-8s) - SCORM content loading with overlay dismissal and logout
-- **Open Video Probe** (~1-5s) - Video content loading with overlay dismissal and logout
-- **Open Course Catalog** (~1s) - Course catalog navigation with overlay dismissal and logout
-- **Open Review** (~4s) - Review functionality access
-
-#### **Analytics & Reports (2 tests)**
-- **Open Unique Users Report** (~0.1-5s) - Curator analytics: unique users
-- **Open Project Team Activity** (~0.3-5s) - Curator analytics: project teams
-
-#### **Class Management (2 tests)**
-- **Open Class** (~0.9-8s) - Educator class dashboard with learner performance
-- **Create Class** (~0.8-2.5s) - Class creation workflow with "Test" name
-
-### 🎯 Priority Tests (6)
-Core functionality that forms the foundation: Login (3) + Communication (2) + Course Catalog (1)
-
-### 🧑‍🎓 Learner Tests (5) - NEW!
-All tests using learner accounts with complete overlay dismissal and logout functionality:
-- **Login Learner** (~3-6s) - Dashboard login with overlay dismissal and logout
-- **Communicator Learner** (~6-9s) - Message interface with logout
-- **Open SCORM** (~2-8s) - SCORM content loading with logout
-- **Open Video Probe** (~1-5s) - Video content loading with logout
-- **Open Course Catalog** (~1s) - Course catalog navigation with logout
-
-## Commands
-
-### **Test Suite Commands**
-| Command | Description |
-|---------|-------------|
-| `npm run priority` | Run 6 priority tests (headless with cache) |
-| `npm run priority-watch` | Run priority tests (visible + slow with cache) |
-| `npm run priority-cold` | Run priority tests without cache (cold load performance) |
-| `npm run priority-cold-watch` | Run priority tests without cache (visible + slow) |
-| `npm run working` | Run all 13 working tests (headless with cache) |
-| `npm run working-watch` | Run all working tests (visible + slow with cache) |
-| `npm run working-cold` | Run all working tests without cache (cold load performance) |
-| `npm run working-cold-watch` | Run all working tests without cache (visible + slow) |
-| **`npm run learners`** | **🧑‍🎓 Run all 5 learner tests (headless with cache)** |
-| **`npm run learners-watch`** | **🧑‍🎓 Run learner tests (visible + slow with cache)** |
-| **`npm run learners-cold`** | **🧑‍🎓 Run learner tests without cache (cold load performance)** |
-| **`npm run learners-cold-watch`** | **🧑‍🎓 Run learner tests without cache (visible + slow)** |
-| **`npm run compare-priority`** | **🔬 Run each priority test twice: NO-CACHE → CACHE** |
-| **`npm run compare-priority-watch`** | **🔬 Priority cache comparison (visible + slow)** |
-| **`npm run compare-working`** | **🔬 Run each working test twice: NO-CACHE → CACHE** |
-| **`npm run compare-working-watch`** | **🔬 Working cache comparison (visible + slow)** |
-| **`npm run compare-learners`** | **🔬 Run each learner test twice: NO-CACHE → CACHE** |
-| **`npm run compare-learners-watch`** | **🔬 Learner cache comparison (visible + slow)** |
-| `npm run show-accounts` | Display account assignments |
-
-### **Individual Test Commands**
-| Command | Test | Expected Time |
-|---------|------|---------------|
-| `npm run scorm` | Open SCORM content | ~2-8s |
-| `npm run video` | Open Video Probe | ~1-5s |
-| `npm run catalog` | Open Course Catalog | ~1s |
-| `npm run analytics` | Open Unique Users Report | ~0.1-5s |
-| `npm run project` | Open Project Team Activity | ~0.3-5s |
-| `npm run class` | Open Class Dashboard | ~0.9-8s |
-| `npm run create` | Create Class | ~0.8-2.5s |
-
-### **Utility Commands**
-| Command | Description |
-|---------|-------------|
-| `npm run clear-results` | Clear legacy results.csv file |
-| `npm run clear-results-warm` | Clear warm load results only |
-| `npm run clear-results-cold` | Clear cold load results only |
-| `npm run clear-results-all` | Clear all result files (warm, cold, all, legacy) |
-| `npm run show-accounts` | Show account assignments for each test |
-
-### **🔬 Cache Performance Analysis Commands**
-| Command | Description |
-|---------|-------------|
-| `npm run compare-priority` | Compare 6 priority tests: cold → warm in same browser (headless) |
-| `npm run compare-priority-watch` | Compare priority tests with visual observation (same browser) |
-| `npm run compare-working` | Compare all 13 tests: cold → warm in same browser (headless) |
-| `npm run compare-working-watch` | Compare all tests with visual observation (same browser) |
-| `npm run compare-learners` | Compare 5 learner tests: cold → warm in same browser (headless) |
-| `npm run compare-learners-watch` | Compare learner tests with visual observation (same browser) |
-
-### **Cache Control Testing**
-
-The framework supports testing both **cold load** (no cache) and **warm load** (with cache) performance:
+### Cache Tests (7 total)
+Tests that run the same action twice to measure caching benefits:
 
 ```bash
-# Cache Control Options
---no-cache, --disable-cache, -nc  # Disable browser cache for cold load testing
+# Run cache comparison tests
+node src/app.js cache --visible --slow
 
-# Compare Cache vs No-Cache Performance
-npm run priority                  # Warm load with cache
-npm run priority-cold             # Cold load without cache
-
-# Watch cache behavior
-npm run working-cold-watch        # Visual cold load testing
-npm run working-watch             # Visual warm load testing
-
-# Single test cache control
-node src/app.js single "login learner" --no-cache -v    # Cold load login test
-node src/app.js single "open scorm" -nc --visible       # Cold load SCORM test
+# Available cache tests:
+# - SCORM Cache (cold vs warm)
+# - Video Probe Cache (cold vs warm)
+# - Review Cache (cold vs warm)
+# - Course Catalog Cache (cold vs warm)
+# - Create Class Cache (cold vs warm)
+# - Open Class Cache (cold vs warm)
+# - Delete Class Cache (cold vs warm)
 ```
 
-### **🔬 Cache Comparison Mode (NEW!)**
+## Simple Commands
 
-**Run each test twice in the SAME BROWSER for true cache comparison:**
-
-```bash
-# True Cache Comparison (COLD LOAD → WARM LOAD in same browser session)
-npm run compare-priority          # Compare priority tests: cold → warm
-npm run compare-priority-watch    # Visual priority comparison
-npm run compare-working           # Compare all tests: cold → warm
-npm run compare-working-watch     # Visual working comparison
-
-# Advanced usage
-node src/app.js cache-compare priority --visible  # Watch priority comparisons
-node src/app.js cache-compare working             # All tests comparison
-```
-
-**How It Works:**
-1. **🌐 Single Browser Session**: Creates one browser with cache enabled
-2. **❄️ Cold Load**: First test run (populates cache)
-3. **🔥 Warm Load**: Second test run in same browser (benefits from cache)
-4. **📊 True Comparison**: Measures actual cache performance difference
-
-**Example Output:**
-```
-🔬 === Login Learner Performance Comparison ===
-❄️  ROUND 1: Login Learner (COLD LOAD - First Visit)
-❄️  COLD LOAD: Login Learner completed: 3.216s
-📥 Cache now populated for warm load test...
-
-🔥 ROUND 2: Login Learner (WARM LOAD - Cache Benefits)
-🔥 WARM LOAD: Login Learner completed: 2.891s
-
-📊 === Login Learner PERFORMANCE SUMMARY ===
-❄️  Cold Load (first visit): 3.216s
-🔥 Warm Load (cached):      2.891s
-⚡ Cache Improvement:       -0.325s (10.1% faster)
-==================================================
-```
-
-**Cache Control Features:**
-- 🚫 **Complete cache disabling**: Application cache, disk cache, media cache
-- 🧹 **Background process disabling**: Extensions, sync, default apps
-- ⚡ **Automatic comparison**: Each test runs NO-CACHE → CACHE in sequence
-- 📊 **Immediate results**: See cache impact for each test instantly
-- 🔬 **Performance analysis**: Automatic improvement calculations
-
-### **Advanced Usage**
-```bash
-# Run specific test types with cache control
-node src/app.js single "login" --visible --no-cache     # Any login test (cold)
-node src/app.js single "communicator" --visible         # Any communicator test (warm)
-node src/app.js single "open" --visible --no-cache      # Any "open" functionality (cold)
-node src/app.js single "unique" --visible               # Unique Users Report (warm)
-
-# Different modes
-node src/app.js working                           # Headless mode with cache
-node src/app.js working --no-cache                # Headless mode without cache
-node src/app.js working --visible                 # Watch browser with cache
-node src/app.js working --visible --no-cache      # Watch browser without cache
-
-# Cache comparison modes
-node src/app.js cache-compare priority            # Compare priority tests automatically
-node src/app.js cache-compare working --visible   # Watch all test comparisons
-node src/app.js cache-compare priority -v -s      # Visual + slow cache comparison
-
-# Combined options
-node src/app.js single "create class" -v -s -nc   # Visual + slow + no cache
-node src/app.js priority --visible --slow --no-cache  # Full debugging cold load
-```
+| Command | What it does |
+|---------|-------------|
+| `npm run priority-watch` | Run 6 core tests (visible) |
+| `npm run working-watch` | Run all 14 tests (visible) |
+| `node src/app.js cache -v -s` | Run 7 cache comparison tests (visible) |
+| `npm run create` | Create test class (visible) |
+| `npm run delete` | Delete test class (visible) |
+| `npm run show-accounts` | Show which account each test uses |
 
 ## Configuration
 
-### Environment Variables (.env)
-- `DEFAULT_PASSWORD` - Password for all test accounts (**required**)
-- `BASE_URL` - Base URL for tests (optional, defaults to UAT)
-- `SKIN_PARAM` - Skin parameter (optional, has default)
-- `DEFAULT_TIMEOUT` - Element wait timeout in ms (optional, default 20000)
-
-### Test Accounts & Isolation
-Each test uses a dedicated account to prevent conflicts and enable parallel testing:
-
-#### **Account Pool (21 total accounts)**
-- **Learner accounts**: A9-106821@area9.dk to A9-106830@area9.dk (10 accounts)
-- **Educator accounts**: A9-106816@area9.dk to A9-106820@area9.dk (5 accounts)
-- **Curator accounts**: A9-106810@area9.dk to A9-106815@area9.dk (6 accounts)
-
-#### **Test Isolation Strategy**
-- ✅ **Unique accounts**: Each test has a dedicated account (no sharing)
-- ✅ **Session clearing**: Complete browser session reset between tests
-- ✅ **Parallel safe**: Multiple tests can run simultaneously without conflicts
-- ✅ **Role separation**: Learner/Educator/Curator tests use appropriate accounts
-
-#### **Account Assignment Examples**
-```bash
-# View complete account mapping
-npm run show-accounts
-
-# Sample assignments:
-# Login Learner        → A9-106821@area9.dk
-# Open SCORM          → A9-106823@area9.dk
-# Open Class          → A9-106820@area9.dk
-# Unique Users Report → A9-106811@area9.dk
+Only one setting needed in `.env` file:
+```
+DEFAULT_PASSWORD=your_actual_password
 ```
 
-## Results & Monitoring
+## Results
 
-Test results are automatically logged to separate files based on cache status:
-
-### **Result File Structure**
-```
-results/
-├── results-warm.csv     # Tests run with cache enabled (warm load)
-├── results-cold.csv     # Tests run with cache disabled (cold load)
-├── results-all.csv      # All tests with cache status column
-results.csv              # Legacy file (backward compatibility)
-```
-
-**File Format**: `timestamp,test_name,execution_time,cache_status`
-- Cache status: `WARM` (with cache) or `COLD` (without cache)
-- Execution time: seconds (number) or `ERROR`
-
-### **Managing Results**
-```bash
-# View recent results by type
-tail -10 results/results-warm.csv       # Recent warm load results
-tail -10 results/results-cold.csv       # Recent cold load results
-tail -10 results/results-all.csv        # Recent all results with cache status
-
-# View legacy results (backward compatibility)
-tail -10 results.csv                    # All results without cache status
-
-# Clear specific result types
-npm run clear-results-warm              # Clear only warm load results
-npm run clear-results-cold              # Clear only cold load results
-npm run clear-results-all               # Clear all result files
-npm run clear-results                   # Clear legacy results.csv only
-
-# Count test runs by type
-wc -l results/results-warm.csv          # Count warm load tests
-wc -l results/results-cold.csv          # Count cold load tests
-wc -l results/results-all.csv           # Count all tests
-
-# View only successful tests
-grep -v "ERROR" results/results-warm.csv | tail -10    # Successful warm tests
-grep -v "ERROR" results/results-cold.csv | tail -10    # Successful cold tests
-```
-
-### **Performance Monitoring**
-```bash
-# Monitor specific test performance over time (by cache type)
-grep "Open SCORM" results/results-warm.csv | tail -5     # SCORM with cache
-grep "Open SCORM" results/results-cold.csv | tail -5     # SCORM without cache
-grep "Login Learner" results/results-warm.csv | tail -5   # Login with cache
-grep "Login Learner" results/results-cold.csv | tail -5   # Login without cache
-
-# Find fastest/slowest runs (by cache type)
-grep -v "ERROR" results/results-warm.csv | sort -k3 -n | head -5    # Fastest warm
-grep -v "ERROR" results/results-cold.csv | sort -k3 -n | head -5    # Fastest cold
-grep -v "ERROR" results/results-warm.csv | sort -k3 -nr | head -5   # Slowest warm
-grep -v "ERROR" results/results-cold.csv | sort -k3 -nr | head -5   # Slowest cold
-
-# All results with cache status
-grep "Login Learner" results/results-all.csv | tail -10             # Mixed cache status
-```
-
-### **Cache vs No-Cache Performance Analysis**
-```bash
-# Direct performance comparison for specific tests
-echo "=== Login Learner Performance Comparison ==="
-echo "WARM (with cache):"
-grep "Login Learner" results/results-warm.csv | tail -5 | awk -F',' '{print $3 "s"}'
-echo "COLD (without cache):"
-grep "Login Learner" results/results-cold.csv | tail -5 | awk -F',' '{print $3 "s"}'
-
-# Average performance by cache type (requires basic calculation)
-echo "=== Average Open SCORM Performance ==="
-echo "WARM: $(grep -v "ERROR" results/results-warm.csv | grep "Open SCORM" | awk -F',' '{sum+=$3; count++} END {print sum/count "s average"}')"
-echo "COLD: $(grep -v "ERROR" results/results-cold.csv | grep "Open SCORM" | awk -F',' '{sum+=$3; count++} END {print sum/count "s average"}')"
-
-# Side-by-side comparison script
-cat << 'EOF' > compare-performance.sh
-#!/bin/bash
-TEST_NAME="$1"
-echo "=== Performance Comparison: $TEST_NAME ==="
-echo "WARM (cached) - Last 5 runs:"
-grep "$TEST_NAME" results/results-warm.csv | grep -v "ERROR" | tail -5 | awk -F',' '{printf "  %s: %ss\n", $1, $3}'
-echo "COLD (no cache) - Last 5 runs:"
-grep "$TEST_NAME" results/results-cold.csv | grep -v "ERROR" | tail -5 | awk -F',' '{printf "  %s: %ss\n", $1, $3}'
-EOF
-chmod +x compare-performance.sh
-
-# Usage: ./compare-performance.sh "Login Learner"
-```
-
-## Project Structure
-
-```
-src/
-├── app.js                          # Main test runner with all 13 tests
-├── show-accounts.js                # Display account assignments
-├── utils/
-│   ├── accounts.js                # Account management (21 unique accounts)
-│   ├── config.js                  # Environment configuration & URL builders
-│   ├── debug-helpers.js           # Visual testing helpers
-│   ├── driver.js                  # Chrome WebDriver setup
-│   ├── learner-utils.js           # Shared learner overlay dismissal and logout utilities
-│   ├── log.js                     # Results logging to CSV
-│   └── login.js                   # Shared login utilities
-└── workflows/
-	├── loginLearner.js            # Learner login with overlay dismissal and logout (~3-6s)
-	├── loginEducator.js           # Educator login test (~3s)
-	├── loginCurator.js            # Curator login test (~3s)
-	├── communicator.js            # Communication tests with learner logout support
-	├── openScorm.js               # SCORM content loading with overlay dismissal and logout (~2-8s)
-	├── openVideoProbe.js          # Video content loading with overlay dismissal and logout (~1-5s)
-	├── openCourseCatalog.js       # Course catalog navigation with overlay dismissal and logout (~1s)
-	├── openUniqueUsersReport.js   # Curator analytics: unique users (~0.1-5s)
-	├── OpenProjectTeam.js         # Curator analytics: project teams (~0.3-5s)
-	├── openClass.js               # Educator class dashboard (~0.9-8s)
-	├── createClass.js             # Class creation workflow (~0.8-2.5s)
-	└── openReview.js              # Review functionality test (~4s)
-```
-
-### **Configuration Files**
-```
-├── .env                           # Environment variables (not in repo)
-├── .env.example                   # Environment template
-├── package.json                   # Dependencies & npm scripts
-├── results.csv                    # Legacy test results (backward compatibility)
-├── results/                       # Performance results directory
-│   ├── results-all.csv           # All results with cache status
-│   ├── results-warm.csv          # Warm load results (with cache)
-│   └── results-cold.csv          # Cold load results (without cache)
-└── test-specifications.md         # Original test requirements
-```
-
-## Deployment
-
-### Prerequisites
-- Node.js 16+
-- Chrome browser
-- Valid test account credentials
-
-### Production Setup
-```bash
-git clone <repository>
-cd area9-performance-tests
-npm install
-cp .env.example .env
-# Edit .env with production credentials
-npm run working
-```
-
-### **Automated Testing & CI/CD**
-```bash
-# Schedule regular monitoring (example crontab)
-# Run priority tests every 30 minutes
-0,30 * * * * cd /path/to/tests && npm run priority
-
-# Full test suite every 2 hours
-0 */2 * * * cd /path/to/tests && npm run working
-
-# Clear results weekly (every Monday)
-0 0 * * 1 cd /path/to/tests && npm run clear-results
-
-# Critical tests every 15 minutes during business hours
-*/15 9-17 * * 1-5 cd /path/to/tests && npm run priority
-```
-
-### **CI/CD Integration Examples**
-```yaml
-# GitHub Actions example
-- name: Run Area9 Performance Tests
-	run: |
-		npm install
-		cp .env.example .env
-		echo "DEFAULT_PASSWORD=${{ secrets.TEST_PASSWORD }}" >> .env
-		npm run working
-
-# Jenkins pipeline example
-stage('Performance Tests') {
-	steps {
-		sh 'npm run working'
-		archiveArtifacts 'results.csv'
-	}
-}
-```
-
-## Test Framework Features
-
-### **Robust Element Detection**
-- ✅ **Multiple selectors**: Each test tries multiple XPath/CSS strategies
-- ✅ **Retry logic**: Automatic retry with different selectors if first fails
-- ✅ **Wait strategies**: Smart waiting for elements to be visible and enabled
-- ✅ **Fallback detection**: URL changes, content loading, navigation confirmation
-
-### **UI Interaction Handling**
-- ✅ **Comprehensive overlay dismissal**: All learner workflows handle onboarding overlays ("GOT IT", "OK", "Close", "Skip")
-- ✅ **Universal logout**: All learner workflows include automatic logout for clean session management
-- ✅ **JavaScript clicks**: Fallback clicks when normal clicks fail
-- ✅ **Scroll into view**: Ensures elements are visible before interaction
-- ✅ **Form validation**: Waits for buttons to become enabled
-- ✅ **Shared utilities**: Consistent overlay and logout handling across all learner tests
-
-### **Performance Measurement**
-- ✅ **Precise timing**: Millisecond accuracy with proper start/stop points
-- ✅ **Specification compliance**: Timing points match original test requirements
-- ✅ **CSV logging**: Structured results with timestamps
-- ✅ **Error tracking**: Distinguishes between timeouts and functional errors
-- ✅ **Cache control**: Compare cold load vs warm load performance
-- ✅ **Performance modes**: Test realistic first-visit vs returning-user scenarios
-
-### **Visual Testing Support**
-- ✅ **Browser visibility**: Watch tests run in real-time
-- ✅ **Slow mode**: Pauses between actions for observation
-- ✅ **Debug logging**: Detailed console output with selector attempts
-- ✅ **State logging**: Current page information for debugging
-
-## Security
-
-- ✅ Never commit `.env` files to version control
-- ✅ Use unique passwords for different environments
-- ✅ Rotate test account passwords regularly
-- ✅ Each test uses dedicated accounts (no conflicts)
-- ✅ Complete session isolation between tests
-- ✅ No credentials in source code (environment-based)
+Test results are automatically saved to `results.csv` with timing data.
 
 ## Troubleshooting
 
-### **Common Issues**
-| Issue | Solution |
-|-------|----------|
-| "Configuration Error" | Check `.env` file exists with `DEFAULT_PASSWORD` |
-| "Chrome driver failed" | Update Chrome browser or reinstall chromedriver |
-| "Element not found" | Check if Area9 interface has changed |
-| "Already logged in" | Session clearing working correctly - this is expected |
-| Test timeouts | Increase `DEFAULT_TIMEOUT` in `.env` |
+**"Configuration Error"** → Check `.env` file has `DEFAULT_PASSWORD`
 
-### **Test-Specific Issues**
-| Test | Issue | Solution |
-|------|-------|----------|
-| SCORM | Red overlay appears | Normal - onboarding tutorial dismissed automatically |
-| Video Probe | Button disabled | Script waits for button to become enabled |
-| Unique Users/Project Team | Clicking wrong card | XPath selectors distinguish between similar cards |
-| Create Class | SAVE button disabled | Script waits for form validation and button activation |
-| Class Opening | Performance data not loading | Script waits for "learners' performance" content |
-
-### **Debug Mode**
+**Test fails** → Try running with `--visible --slow` to see what happens:
 ```bash
-# Run with maximum visibility for debugging
-node src/app.js single "test_name" --visible --slow
-
-# Check account assignments
-npm run show-accounts
-
-# View detailed error logs
-tail -f results.csv
+node src/app.js single "test name" --visible --slow
 ```
 
-### **Performance Issues**
-If tests are running slower than expected:
-1. Check network connection stability
-2. Verify Area9 server status
-3. Increase `DEFAULT_TIMEOUT` in `.env`
-4. Run individual tests to isolate issues
-5. Clear browser cache/data (restart helps)
+**Browser issues** → Update Chrome or restart terminal
 
-## Performance Expectations
+## Test Accounts
 
-| Test Category | Expected Time | Actual Performance | Status |
-|---------------|---------------|-------------------|---------|
-| **Authentication** | 3-6 seconds | 3-6 seconds | ✅ Stable |
-| **Communication** | 6-17 seconds | 6-17 seconds | ✅ Stable |
-| **Content Navigation** | 1-8 seconds | 1-8 seconds | ✅ Fast |
-| **Analytics/Reports** | 0.1-5 seconds | 0.1-5 seconds | ⚡ Excellent |
-| **Class Management** | 0.8-8 seconds | 0.8-8 seconds | ✅ Efficient |
+Each test uses a unique account (no conflicts):
+- Learner accounts: A9-106821@area9.dk to A9-106830@area9.dk
+- Educator accounts: A9-106816@area9.dk to A9-106820@area9.dk
+- Curator accounts: A9-106810@area9.dk to A9-106815@area9.dk
 
-### **Individual Test Benchmarks**
-| Test Name | Target | Current Avg | Best | Status |
-|-----------|--------|-------------|------|--------|
-| Login Learner | 8.4s | ~4s | 3.2s | ✅ Better than target |
-| Login Educator | 14.5s | ~3s | 3.2s | ⚡ Much better |
-| Login Curator | 12s | ~3s | 3.2s | ⚡ Much better |
-| Open SCORM | 8s | ~2s | 1.95s | ⚡ Much better |
-| Open Video Probe | 5s | ~2s | 1.48s | ⚡ Much better |
-| Open Course Catalog | 1s | ~1s | 1.09s | ✅ On target |
-| Open Class | 8s | ~1s | 0.94s | ⚡ Much better |
-| Create Class | 2.5s | ~0.8s | 0.79s | ⚡ Much better |
-| Unique Users Report | 5s | ~0.1s | 0.10s | ⚡ Excellent |
-| Project Team Activity | 5s | ~0.5s | 0.30s | ⚡ Excellent |
-
-**Note**: Times may vary based on network conditions, server load, and browser performance. The Area9 platform is performing excellently across all test categories.
+Run `npm run show-accounts` to see exact assignments.

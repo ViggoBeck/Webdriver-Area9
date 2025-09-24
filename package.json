@@ -20,6 +20,7 @@
 		"project": "node src/app.js single project --visible --slow",
 		"class": "node src/app.js single class --visible --slow",
 		"create": "node src/app.js single create --visible --slow",
+		"delete": "node src/app.js single delete --visible --slow",
 		"learners": "node src/app.js learners --slow",
 		"learners-watch": "node src/app.js learners --visible --slow",
 		"clear-results": "> results.csv"

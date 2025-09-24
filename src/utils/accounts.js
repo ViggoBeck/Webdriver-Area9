@@ -65,7 +65,8 @@ const TEST_ACCOUNT_ASSIGNMENTS = {
 	"Review Cache": ACCOUNTS.educator[2],                   // A9-106818@area9.dk (same as Open Review)
 	"Course Catalog Cache": ACCOUNTS.learner[4],            // A9-106825@area9.dk (same as Open Course Catalog)
 	"Create Class Cache": ACCOUNTS.educator[0],             // A9-106816@area9.dk (same as Create Class)
-	"Open Class Cache": ACCOUNTS.educator[4]                // A9-106820@area9.dk (same as Open Class)
+	"Open Class Cache": ACCOUNTS.educator[4],               // A9-106820@area9.dk (same as Open Class)
+	"Delete Class Cache": ACCOUNTS.educator[0]              // A9-106816@area9.dk (same as Delete Class)
 };
 
 export function getAccountForTest(testName) {

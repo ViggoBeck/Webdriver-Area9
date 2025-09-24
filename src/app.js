@@ -18,6 +18,7 @@ import { compareReview } from "./workflowsCache/compareReview.js";
 import { compareCourseCatalog } from "./workflowsCache/compareCourseCatalog.js";
 import { compareCreateClass } from "./workflowsCache/compareCreateClass.js";
 import { compareOpenClass } from "./workflowsCache/compareOpenClass.js";
+import { compareDeleteClass } from "./workflowsCache/compareDeleteClass.js";
 import { logResult } from "./utils/log.js";
 import { getAccountForTest } from "./utils/accounts.js";
 import { validateConfig } from "./utils/config.js";
@@ -130,7 +131,8 @@ const CACHE_TESTS = [
 	{ name: "Review Cache", func: compareReview },
 	{ name: "Course Catalog Cache", func: compareCourseCatalog },
 	{ name: "Create Class Cache", func: compareCreateClass },
-	{ name: "Open Class Cache", func: compareOpenClass }
+	{ name: "Open Class Cache", func: compareOpenClass },
+	{ name: "Delete Class Cache", func: compareDeleteClass }
 ];
 
 async function runTests(testSuite, suiteName, options = {}) {
