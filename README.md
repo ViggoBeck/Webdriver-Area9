@@ -32,6 +32,76 @@ node src/app.js cache --visible --slow
 node src/app.js single "login learner" --visible --slow
 ```
 
+## Single Test Commands
+
+### Regular Tests (15 total)
+```bash
+# Login Tests
+node src/app.js single "login learner" --visible --slow
+node src/app.js single "login educator" --visible --slow
+node src/app.js single "login curator" --visible --slow
+
+# Communication Tests
+node src/app.js single "communicator learner" --visible --slow
+node src/app.js single "communicator educator" --visible --slow
+
+# Content Tests
+node src/app.js single "open scorm" --visible --slow
+node src/app.js single "open video probe" --visible --slow
+node src/app.js single "open course catalog" --visible --slow
+node src/app.js single "open review" --visible --slow
+
+# Analytics Tests
+node src/app.js single "open unique users report" --visible --slow
+node src/app.js single "open project team activity" --visible --slow
+
+# Class Management Tests
+node src/app.js single "open class" --visible --slow
+node src/app.js single "create class" --visible --slow
+node src/app.js single "delete class" --visible --slow
+
+# Performance Tests
+node src/app.js single "page load" --visible --slow
+```
+
+### Cache Comparison Tests (9 total - Cold vs Warm)
+```bash
+# Login Cache Tests
+node src/app.js single "login learner cache" --visible --slow
+node src/app.js single "login educator cache" --visible --slow
+node src/app.js single "login curator cache" --visible --slow
+
+# Content Cache Tests
+node src/app.js single "scorm cache" --visible --slow
+node src/app.js single "video probe cache" --visible --slow
+node src/app.js single "review cache" --visible --slow
+node src/app.js single "course catalog cache" --visible --slow
+node src/app.js single "open class cache" --visible --slow
+
+# Performance Cache Tests
+node src/app.js single "page load cache" --visible --slow    # Best cache results! (75%+ improvement)
+```
+
+### Quick Commands (Headless)
+```bash
+# Remove --visible --slow for fast headless execution
+node src/app.js single "login learner"
+node src/app.js single "page load cache"
+node src/app.js single "scorm cache"
+# ... (any test above)
+```
+
+### Partial Matching Examples
+```bash
+# These work due to smart partial matching:
+node src/app.js single "learner" --visible        # → Login Learner (regular test preferred)
+node src/app.js single "learner cache" --visible  # → Login Learner Cache
+node src/app.js single "scorm" --visible          # → SCORM Cache (cache test preferred)
+node src/app.js single "video" --visible          # → Video Probe Cache
+node src/app.js single "class" --visible          # → Open Class (regular)
+node src/app.js single "class cache" --visible    # → Open Class Cache
+```
+
 ## Available Tests (15 total)
 
 ### Regular Tests

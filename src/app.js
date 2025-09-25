@@ -53,38 +53,56 @@ async function clearSession(driver) {
 			throw windowError; // Re-throw if it's a different error
 		}
 
-		// More thorough session clearing for suite runs
-		console.log("🔄 Performing thorough session reset...");
+		// Enhanced session clearing for suite runs
+		console.log("🔄 Performing enhanced session reset...");
 
-		// Clear all cookies, local storage, and session storage
-		await driver.manage().deleteAllCookies();
+		// Step 1: Clear cookies first (before any navigation)
+		try {
+			await driver.manage().deleteAllCookies();
+		} catch (e) {
+			console.log("⚠️ Cookie clearing failed (continuing):", e.message);
+		}
 
-		// Clear local and session storage via JavaScript
-		await driver.executeScript("window.localStorage.clear();");
-		await driver.executeScript("window.sessionStorage.clear();");
+		// Step 2: Clear storage on current page if possible
+		try {
+			await driver.executeScript(`
+				try {
+					window.localStorage.clear();
+					window.sessionStorage.clear();
+				} catch (e) {
+					// Storage might be restricted
+				}
+			`);
+		} catch (e) {
+			// Continue if storage clearing fails
+		}
 
-		// Navigate to about:blank to reset page state
+		// Step 3: Navigate to about:blank to reset DOM state
 		await driver.get("about:blank");
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		await new Promise(resolve => setTimeout(resolve, 1500));
 
-		// Clear any cached data and ensure fresh state
-		await driver.executeScript("window.localStorage.clear();");
-		await driver.executeScript("window.sessionStorage.clear();");
-
-		// Additional cleanup - clear any remaining browser state
+		// Step 4: Clear cookies again after navigation
 		try {
 			await driver.manage().deleteAllCookies();
 		} catch (e) {
 			// Continue if cookie clearing fails
 		}
 
-		// Wait for cleanup to complete
-		await new Promise(resolve => setTimeout(resolve, 2000));
+		// Step 5: Clear any browser cache/data via execute_cdp_cmd if available
+		try {
+			await driver.executeCdpCommand('Network.clearBrowserCache', {});
+			await driver.executeCdpCommand('Network.clearBrowserCookies', {});
+		} catch (e) {
+			// CDP commands not available in all Chrome versions
+		}
 
-		console.log("✅ Session cleared successfully");
+		// Step 6: Longer wait for complete state reset (crucial for complex UI tests)
+		await new Promise(resolve => setTimeout(resolve, 3000));
+
+		console.log("✅ Enhanced session reset completed");
 	} catch (error) {
-		console.log("⚠️ Error clearing session:", error.message);
-		// Continue anyway - not fatal
+		console.log("⚠️ Error during session reset:", error.message);
+		// Always continue - session clearing should never break the test suite
 	}
 }
 
@@ -180,8 +198,8 @@ async function runTests(testSuite, suiteName, options = {}) {
 					await clearSession(driver);
 				}
 
-				// Longer pause between tests to avoid overwhelming the server (especially in batch mode)
-				const pauseTime = options.slowMode ? 5000 : 3000;
+				// Longer pause between tests for proper state reset (especially UI-heavy tests)
+				const pauseTime = options.slowMode ? 6000 : 4000;
 				await new Promise(resolve => setTimeout(resolve, pauseTime));
 			} catch (testErr) {
 				console.error(`❌ Error in ${test.name}:`, testErr.message);

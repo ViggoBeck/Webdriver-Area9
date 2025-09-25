@@ -10,3 +10,29 @@ timestamp,test_name,execution_time,account
 2025-09-25T08:38:22.542Z,Login Educator,10.443,A9-106816@area9.dk
 2025-09-25T08:39:08.195Z,Login Curator,11.368,A9-106810@area9.dk
 2025-09-25T08:43:32.988Z,Page Load,3.051,A9-106826@area9.dk
+2025-09-25T08:52:47.817Z,Login Learner (page load),8.012,A9-106821@area9.dk
+2025-09-25T08:52:47.822Z,Login Learner (login),3.19,A9-106821@area9.dk
+2025-09-25T08:53:41.212Z,Login Educator,10.522,A9-106816@area9.dk
+2025-09-25T08:54:27.194Z,Login Curator,11.742,A9-106810@area9.dk
+2025-09-25T08:59:07.580Z,Page Load,7.781,A9-106826@area9.dk
+2025-09-25T09:03:11.827Z,Login Educator,15.134,A9-106816@area9.dk
+2025-09-25T09:07:16.381Z,Page Load,3.947,A9-106826@area9.dk
+2025-09-25T09:11:42.510Z,Login Learner (page load),9.031,A9-106821@area9.dk
+2025-09-25T09:11:42.516Z,Login Learner (login),3.18,A9-106821@area9.dk
+2025-09-25T09:12:39.847Z,Login Educator,11.496,A9-106816@area9.dk
+2025-09-25T09:13:27.415Z,Login Curator,11.205,A9-106810@area9.dk
+2025-09-25T09:17:08.865Z,Login Learner (page load),8.73,A9-106821@area9.dk
+2025-09-25T09:17:08.870Z,Login Learner (login),3.202,A9-106821@area9.dk
+2025-09-25T09:18:02.718Z,Login Educator,10.364,A9-106816@area9.dk
+2025-09-25T09:18:51.519Z,Login Curator,11.341,A9-106810@area9.dk
+2025-09-25T09:23:34.090Z,Page Load,3.732,A9-106826@area9.dk
+2025-09-25T09:27:55.882Z,Login Curator (page load),8.025,A9-106810@area9.dk
+2025-09-25T09:27:55.886Z,Login Curator (login),5.192,A9-106810@area9.dk
+2025-09-25T09:31:53.916Z,Login Curator (page load),8.597,A9-106810@area9.dk
+2025-09-25T09:31:53.919Z,Login Curator (login),5.139,A9-106810@area9.dk
+2025-09-25T09:34:38.846Z,Login Curator (page load),13.704,A9-106810@area9.dk
+2025-09-25T09:34:38.849Z,Login Curator (login),5.176,A9-106810@area9.dk
+2025-09-25T09:40:51.603Z,Login Curator (page load),7.85,A9-106810@area9.dk
+2025-09-25T09:40:51.608Z,Login Curator (login),5.138,A9-106810@area9.dk
+2025-09-25T09:44:20.431Z,Login Educator (page load),9.024,A9-106816@area9.dk
+2025-09-25T09:44:20.433Z,Login Educator (login),5.183,A9-106816@area9.dk
