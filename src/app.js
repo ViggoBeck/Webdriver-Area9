@@ -12,14 +12,17 @@ import { openClass } from "./workflows/openClass.js";
 import { createClass } from "./workflows/createClass.js";
 import { openReview } from "./workflows/openReview.js";
 import { deleteClass } from "./workflows/deleteClass.js";
+import { pageLoad } from "./workflows/pageLoad.js";
 import { compareScorm } from "./workflowsCache/compareScorm.js";
 import { compareVideoProbe } from "./workflowsCache/compareVideoProbe.js";
 import { compareReview } from "./workflowsCache/compareReview.js";
 import { compareCourseCatalog } from "./workflowsCache/compareCourseCatalog.js";
-import { compareCreateClass } from "./workflowsCache/compareCreateClass.js";
 import { compareOpenClass } from "./workflowsCache/compareOpenClass.js";
-import { compareDeleteClass } from "./workflowsCache/compareDeleteClass.js";
-import { logResult } from "./utils/log.js";
+import { compareLoginLearner } from "./workflowsCache/compareLoginLearner.js";
+import { compareLoginEducator } from "./workflowsCache/compareLoginEducator.js";
+import { compareLoginCurator } from "./workflowsCache/compareLoginCurator.js";
+import { comparePageLoad } from "./workflowsCache/comparePageLoad.js";
+import { logResult, showResultsInfo } from "./utils/log.js";
 import { getAccountForTest } from "./utils/accounts.js";
 import { validateConfig } from "./utils/config.js";
 
@@ -100,7 +103,8 @@ const WORKING_TESTS = [
 	{ name: "Open Class", func: openClass },
 	{ name: "Create Class", func: createClass },
 	{ name: "Delete Class", func: deleteClass },
-	{ name: "Open Review", func: openReview }
+	{ name: "Open Review", func: openReview },
+	{ name: "Page Load", func: pageLoad }
 ];
 
 // Priority tests from specifications (marked with * in test-specifications.md)
@@ -119,20 +123,23 @@ const LEARNER_TESTS = [
 	{ name: "Communicator Learner", func: communicatorLearner },
 	{ name: "Open SCORM", func: openScorm },
 	{ name: "Open Video Probe", func: openVideoProbe },
-	{ name: "Open Course Catalog", func: openCourseCatalog }
+	{ name: "Open Course Catalog", func: openCourseCatalog },
+	{ name: "Page Load", func: pageLoad }
 ];
 
 const ALL_TESTS = WORKING_TESTS;
 
 // Cache comparison tests (cold vs warm in same session)
 const CACHE_TESTS = [
+	{ name: "Login Learner Cache", func: compareLoginLearner },
+	{ name: "Login Educator Cache", func: compareLoginEducator },
+	{ name: "Login Curator Cache", func: compareLoginCurator },
 	{ name: "SCORM Cache", func: compareScorm },
 	{ name: "Video Probe Cache", func: compareVideoProbe },
 	{ name: "Review Cache", func: compareReview },
 	{ name: "Course Catalog Cache", func: compareCourseCatalog },
-	{ name: "Create Class Cache", func: compareCreateClass },
 	{ name: "Open Class Cache", func: compareOpenClass },
-	{ name: "Delete Class Cache", func: compareDeleteClass }
+	{ name: "Page Load Cache", func: comparePageLoad }
 ];
 
 async function runTests(testSuite, suiteName, options = {}) {
@@ -158,7 +165,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 				// Cache tests handle their own logging internally
 				const isCacheTest = testSuite === CACHE_TESTS;
 				if (!isCacheTest) {
-					logResult(test.name, time);
+					logResult(test.name, time, assignedAccount);
 				}
 
 				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
@@ -194,6 +201,9 @@ async function runTests(testSuite, suiteName, options = {}) {
 	} finally {
 		await driver.quit();
 		console.log(`\n✨ ${suiteName} completed\n`);
+
+		// Show CSV results info
+		showResultsInfo();
 	}
 }
 
@@ -252,24 +262,55 @@ switch (command) {
 		// Run a single test by name
 		const testName = args[1];
 
-		// Check cache tests first
-		const cacheTest = CACHE_TESTS.find(t => t.name.toLowerCase().includes(testName?.toLowerCase()));
-		if (cacheTest) {
-			runTests([cacheTest], `Single Cache Test: ${cacheTest.name}`, options);
-			break;
-		}
-
-		// Check regular tests
-		const test = ALL_TESTS.find(t => t.name.toLowerCase().includes(testName?.toLowerCase()));
-		if (test) {
-			runTests([test], `Single Test: ${test.name}`, options);
-		} else {
-			console.log("❌ Test not found. Available tests:");
+		if (!testName) {
+			console.log("❌ Please specify a test name.");
 			console.log("\nRegular Tests:");
 			ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
 			console.log("\nCache Tests:");
 			CACHE_TESTS.forEach(t => console.log(`  - ${t.name}`));
+			break;
 		}
+
+		const lowerTestName = testName.toLowerCase();
+
+		// Try exact matches first (both regular and cache)
+		let exactTest = ALL_TESTS.find(t => t.name.toLowerCase() === lowerTestName);
+		let exactCacheTest = CACHE_TESTS.find(t => t.name.toLowerCase() === lowerTestName);
+
+		if (exactTest) {
+			console.log(`🎯 Found exact match: ${exactTest.name}`);
+			runTests([exactTest], `Single Test: ${exactTest.name}`, options);
+			break;
+		}
+
+		if (exactCacheTest) {
+			console.log(`🎯 Found exact cache match: ${exactCacheTest.name}`);
+			runTests([exactCacheTest], `Single Cache Test: ${exactCacheTest.name}`, options);
+			break;
+		}
+
+		// Try partial matches - prefer regular tests over cache tests
+		const test = ALL_TESTS.find(t => t.name.toLowerCase().includes(lowerTestName));
+		if (test) {
+			console.log(`🔍 Found regular test match: ${test.name}`);
+			runTests([test], `Single Test: ${test.name}`, options);
+			break;
+		}
+
+		// Check cache tests as fallback
+		const cacheTest = CACHE_TESTS.find(t => t.name.toLowerCase().includes(lowerTestName));
+		if (cacheTest) {
+			console.log(`🔍 Found cache test match: ${cacheTest.name}`);
+			runTests([cacheTest], `Single Cache Test: ${cacheTest.name}`, options);
+			break;
+		}
+
+		// No matches found
+		console.log(`❌ Test not found: "${testName}". Available tests:`);
+		console.log("\nRegular Tests:");
+		ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
+		console.log("\nCache Tests:");
+		CACHE_TESTS.forEach(t => console.log(`  - ${t.name}`));
 		break;
 
 	default:
@@ -281,10 +322,10 @@ Usage:
 
 Commands:
 	priority         Run priority tests only (6 tests - core login, communicator, course catalog)
-	working          Run all working tests (14 tests including SCORM, Video, Catalog, Analytics, Classes, Review, Delete)
+	working          Run all working tests (15 tests including SCORM, Video, Catalog, Analytics, Classes, Review, Delete, Page Load)
 	all             Run all working tests (same as 'working')
-	learners        Run learner tests only (5 tests - all tests using learner accounts with logout)
-	cache           Run cache comparison tests (cold vs warm in same session)
+	learners        Run learner tests only (6 tests - all tests using learner accounts with logout)
+	cache           Run cache comparison tests (9 tests - cold vs warm in same session)
 	single <name>   Run a single test by name (partial match - works for both regular and cache tests)
 
 Options:
@@ -307,16 +348,16 @@ Examples:
 	node src/app.js single "login learner"      # Test login functionality
 	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
-Working Tests (14):
+Working Tests (15):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
 Priority Tests (6):
 ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
 
-Learner Tests (5):
+Learner Tests (6):
 ${LEARNER_TESTS.map(t => `  - ${t.name} (with logout)`).join('\n')}
 
-Cache Comparison Tests (Cold vs Warm):
+Cache Comparison Tests (9 total - Cold vs Warm):
 ${CACHE_TESTS.map(t => `  - ${t.name} (same session)`).join('\n')}
 
 🔐 Account Management:

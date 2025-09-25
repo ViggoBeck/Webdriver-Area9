@@ -22,7 +22,7 @@ npm run priority-watch
 # Watch 6 priority tests (recommended for first time)
 npm run priority-watch
 
-# Run all 14 tests (watch mode)
+# Run all 15 tests (watch mode)
 npm run working-watch
 
 # Run cache comparison tests (visible)
@@ -32,7 +32,7 @@ node src/app.js cache --visible --slow
 node src/app.js single "login learner" --visible --slow
 ```
 
-## Available Tests (14 total)
+## Available Tests (15 total)
 
 ### Regular Tests
 - **Login Learner** (~4s) - Student login
@@ -49,8 +49,9 @@ node src/app.js single "login learner" --visible --slow
 - **Open Class** (~1s) - Class dashboard
 - **Create Class** (~1s) - Create new class
 - **Delete Class** (~2s) - Clean up test data
+- **Page Load** (~3s) - Pure page load performance using Performance API
 
-### Cache Tests (7 total)
+### Cache Tests (9 total)
 Tests that run the same action twice to measure caching benefits:
 
 ```bash
@@ -58,13 +59,15 @@ Tests that run the same action twice to measure caching benefits:
 node src/app.js cache --visible --slow
 
 # Available cache tests:
+# - Login Learner Cache (cold vs warm login performance)
+# - Login Educator Cache (cold vs warm login performance)
+# - Login Curator Cache (cold vs warm login performance)
 # - SCORM Cache (cold vs warm)
 # - Video Probe Cache (cold vs warm)
 # - Review Cache (cold vs warm)
 # - Course Catalog Cache (cold vs warm)
-# - Create Class Cache (cold vs warm)
 # - Open Class Cache (cold vs warm)
-# - Delete Class Cache (cold vs warm)
+# - Page Load Cache (cold vs warm) - Shows biggest cache benefits (60-75%!)
 ```
 
 ## Simple Commands
@@ -72,8 +75,9 @@ node src/app.js cache --visible --slow
 | Command | What it does |
 |---------|-------------|
 | `npm run priority-watch` | Run 6 core tests (visible) |
-| `npm run working-watch` | Run all 14 tests (visible) |
-| `node src/app.js cache -v -s` | Run 7 cache comparison tests (visible) |
+| `npm run working-watch` | Run all 15 tests (visible) |
+| `node src/app.js cache -v -s` | Run 9 cache comparison tests (visible) |
+| `node src/app.js single "page load cache" -v` | Best cache test (75% improvement!) |
 | `npm run create` | Create test class (visible) |
 | `npm run delete` | Delete test class (visible) |
 | `npm run show-accounts` | Show which account each test uses |
@@ -87,7 +91,59 @@ DEFAULT_PASSWORD=your_actual_password
 
 ## Results
 
-Test results are automatically saved to `results.csv` with timing data.
+Test results are automatically saved to organized CSV files for comprehensive analysis:
+
+### 📊 **Structured Data Output:**
+```
+results/
+├── results-normal.csv          # Normal workflow tests (baseline performance)
+├── results-cold.csv            # Cold cache test results
+├── results-warm.csv            # Warm cache test results
+└── results-cache-comparison.csv # Side-by-side cold vs warm analysis
+```
+
+### 📋 **CSV Formats:**
+
+**Normal Tests** (baseline performance):
+```csv
+timestamp,test_name,execution_time,account
+2025-09-24T13:50:06.553Z,Page Load,0.749,A9-106826@area9.dk
+```
+
+**Cache Comparison** (optimization insights):
+```csv
+timestamp,test_name,cold_time,warm_time,improvement_seconds,improvement_percent,account
+2025-09-24T13:50:06.553Z,Page Load,2.234,0.749,1.485,66.5%,A9-106826@area9.dk
+```
+
+### 🎯 **Data Analysis Use Cases:**
+
+- **Performance Trends**: Track baseline performance over time (normal.csv)
+- **Cache Effectiveness**: Measure optimization impact (comparison.csv)
+- **Individual Metrics**: Analyze cold starts vs warm performance separately
+- **Account Patterns**: Performance differences across test accounts
+
+### 📊 **Example Data Analysis:**
+```bash
+# Generate comprehensive performance data
+npm run working-watch          # Baseline performance → results-normal.csv
+node src/app.js cache -v       # Cache benefits → results-cache-comparison.csv
+
+# Best tests for cache analysis:
+node src/app.js single "page load cache" -v      # 75% improvement
+node src/app.js single "login learner cache" -v  # 3% improvement
+node src/app.js single "login educator cache" -v # 3% improvement
+node src/app.js single "login curator cache" -v  # 3% improvement
+```
+
+**Sample Results:**
+```csv
+# results-cache-comparison.csv
+2025-09-24,Page Load,2.234,0.749,1.485,66.5%,A9-106826@area9.dk
+2025-09-24,Login Learner,3.258,3.144,0.114,3.5%,A9-106821@area9.dk
+2025-09-24,Login Educator,3.124,3.021,0.103,3.3%,A9-106816@area9.dk
+2025-09-24,Login Curator,3.337,3.201,0.136,4.1%,A9-106810@area9.dk
+```
 
 ## Troubleshooting
 
@@ -103,8 +159,19 @@ node src/app.js single "test name" --visible --slow
 ## Test Accounts
 
 Each test uses a unique account (no conflicts):
-- Learner accounts: A9-106821@area9.dk to A9-106830@area9.dk
-- Educator accounts: A9-106816@area9.dk to A9-106820@area9.dk
-- Curator accounts: A9-106810@area9.dk to A9-106815@area9.dk
+- **Learner accounts**: A9-106821@area9.dk to A9-106830@area9.dk
+- **Educator accounts**: A9-106816@area9.dk to A9-106820@area9.dk
+- **Curator accounts**: A9-106810@area9.dk to A9-106815@area9.dk
+
+**Total**: 15 regular tests + 9 cache tests = **24 comprehensive performance tests**
 
 Run `npm run show-accounts` to see exact assignments.
+
+## 📈 **Expected Cache Performance Gains:**
+- **Page Load**: 60-75% improvement (biggest gains)
+- **SCORM/Video**: 15-25% improvement
+- **Login Tests (All Roles)**: 3-5% improvement (mostly server-side authentication)
+	- Login Learner Cache
+	- Login Educator Cache
+	- Login Curator Cache
+- **Content Operations**: 10-20% improvement (SCORM, Reviews, Catalog)

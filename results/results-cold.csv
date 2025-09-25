@@ -1,0 +1,12 @@
+timestamp,test_name,execution_time,account
+2025-09-24T13:50:04.780Z,Page Load,2.234,A9-106826@area9.dk
+2025-09-24T13:57:13.432Z,Page Load,6.54,A9-106826@area9.dk
+2025-09-24T13:58:48.626Z,Page Load,3.392,A9-106826@area9.dk
+2025-09-25T07:55:51.758Z,Login Educator,14.29,A9-106816@area9.dk
+2025-09-25T08:02:04.335Z,Page Load,5.787,A9-106826@area9.dk
+2025-09-25T08:23:11.186Z,Page Load,4.728,A9-106826@area9.dk
+2025-09-25T08:37:29.447Z,Login Learner (page load),9.806,A9-106821@area9.dk
+2025-09-25T08:37:29.453Z,Login Learner (login),3.223,A9-106821@area9.dk
+2025-09-25T08:38:22.542Z,Login Educator,10.443,A9-106816@area9.dk
+2025-09-25T08:39:08.195Z,Login Curator,11.368,A9-106810@area9.dk
+2025-09-25T08:43:32.988Z,Page Load,3.051,A9-106826@area9.dk
