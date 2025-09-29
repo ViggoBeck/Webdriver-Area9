@@ -50,7 +50,6 @@ async function findRowWithNameAndStatus(driver, className, status, timeout = DEF
 
 export async function deleteClass(driver) {
 	console.log("🚀 Starting Delete Class test...");
-	const start = Date.now();
 
 	// --- LOGIN AS EDUCATOR ---
 	await driver.get(buildEducatorUrl());
@@ -112,14 +111,66 @@ export async function deleteClass(driver) {
 		),
 		DEFAULT_TIMEOUT
 	);
+
+	// --- START TIMING HERE - RIGHT BEFORE ACTUAL DELETION ---
+	const start = Date.now();
 	await safeClick(driver, confirmBtn);
 	console.log("✅ Confirm delete clicked");
 
-	// --- VERIFY DISAPPEARANCE ---
-	await driver.wait(until.stalenessOf(row), 8000).catch(() => {});
-	console.log("✅ 'Webdriver' (Inactive) class deleted");
+	// --- ROBUST VERIFICATION OF DELETION ---
+	// 1. Wait for the row to become stale first
+	try {
+		await driver.wait(until.stalenessOf(row), 10000);
+	} catch (stalErr) {
+		// If stale doesn't work, continue to other verification methods
+		console.log("⚠️ Row staleness check failed, trying alternative verification...");
+	}
 
-	// --- STOP TIMER ---
+	// 2. Wait for the class to actually disappear from the table
+	let deletionVerified = false;
+	let attempts = 0;
+	const maxAttempts = 10;
+
+	while (!deletionVerified && attempts < maxAttempts) {
+		attempts++;
+
+		try {
+			// Try to find the row again - if it's gone, deletion succeeded
+			const stillExists = await driver.findElements(
+				By.xpath(`//*[@role='row' and .//p[normalize-space()='Webdriver'] and .//p[normalize-space()='Inactive']]`)
+			);
+
+			if (stillExists.length === 0) {
+				deletionVerified = true;
+				console.log("✅ 'Webdriver' (Inactive) class confirmed deleted from table");
+			} else {
+				console.log(`⏳ Deletion attempt ${attempts}/${maxAttempts} - class still visible, waiting...`);
+				await new Promise(r => setTimeout(r, 500)); // Wait 500ms before next check
+			}
+		} catch (err) {
+			// Error finding elements is also good - means it's gone
+			deletionVerified = true;
+			console.log("✅ 'Webdriver' (Inactive) class confirmed deleted (element search failed)");
+		}
+	}
+
+	// 3. Final verification - double-check that no "Webdriver" + "Inactive" row exists
+	if (!deletionVerified) {
+		// One more thorough check
+		await new Promise(r => setTimeout(r, 1000)); // Final wait
+		const finalCheck = await driver.findElements(
+			By.xpath(`//*[@role='row' and .//p[normalize-space()='Webdriver'] and .//p[normalize-space()='Inactive']]`)
+		);
+
+		if (finalCheck.length > 0) {
+			throw new Error("❌ Class deletion failed - 'Webdriver' (Inactive) is still present in the table");
+		} else {
+			deletionVerified = true;
+			console.log("✅ Final verification: 'Webdriver' (Inactive) class successfully deleted");
+		}
+	}
+
+	// --- STOP TIMER - DELETION IS NOW CONFIRMED ---
 	const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
 	console.log(`⏱ Delete Class took: ${seconds}s`);
 
