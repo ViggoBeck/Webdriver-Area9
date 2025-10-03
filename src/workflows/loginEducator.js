@@ -1,76 +1,49 @@
-import { By, until } from "selenium-webdriver";
+// loginEducator.js - Using Smart Wait Utilities
+// Eliminates timing dependencies, race conditions, and the need for --slow mode
+
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function loginEducator(driver) {
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
-	// Wait for page to fully load (form elements appear after 3+ seconds)
-	await new Promise(resolve => setTimeout(resolve, 4000));
+	// Wait for username field with smart waiting - no more hardcoded 4s delay
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 15000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
 
-	// Use the CORRECT selectors from diagnostic
-	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[name="username"]')),
-		20000
-	);
-	await driver.wait(until.elementIsVisible(emailField), 5000);
 	const assignedAccount = getAccountForTest("Login Educator");
 	await emailField.sendKeys(assignedAccount);
 
-	const passwordField = await driver.wait(
-		until.elementLocated(By.css('input[name="password"]')),
-		20000
-	);
-	await driver.wait(until.elementIsVisible(passwordField), 5000);
+	// Wait for password field
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	// Use the SPECIFIC login button ID
-	const signInButton = await driver.wait(
-		until.elementLocated(By.id("sign_in")),
-		20000
-	);
-	await driver.wait(until.elementIsEnabled(signInButton), 5000);
+	// Wait for sign in button to be clickable
+	const signInButton = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
 
-	// START TIMING: Right before clicking login (as per specification)
+	// START TIMING: Right before clicking login
 	const start = Date.now();
-	await signInButton.click();
+	await waitFor.smartClick(driver, signInButton);
 
-  // Flexible dashboard detection
-  const successSelectors = [
-  	By.xpath("//*[text()='Dashboard']"),
-  	By.xpath("//*[contains(text(), 'Dashboard')]"),
-  	By.xpath("//*[contains(text(), 'Welcome')]"),
-  	By.xpath("//nav | //header"),
-  	By.xpath("//*[contains(@class, 'dashboard')]")
-  ];
+	// Wait for login to complete (dashboard appears)
+	await waitFor.loginComplete(driver, 'educator', 20000);
 
-  let loginSuccess = false;
-  for (const selector of successSelectors) {
-  	try {
-  		await driver.wait(until.elementLocated(selector), 3000);
-  		console.log(`✅ Educator login success detected via: ${selector}`);
-  		loginSuccess = true;
-  		break;
-  	} catch (e) {
-  		// Try next selector
-  	}
-  }
+	// Wait for network to settle (page fully interactive) - part of measurement
+	await waitFor.networkIdle(driver, 1000, 5000);
 
-  if (!loginSuccess) {
-  	// Fallback: check if login form disappeared
-  	await new Promise(resolve => setTimeout(resolve, 2000));
-  	const loginForms = await driver.findElements(By.css('input[name="username"]'));
-  	if (loginForms.length === 0) {
-  		console.log("✅ Login form disappeared - educator login successful");
-  		loginSuccess = true;
-  	}
-  }
+	// STOP TIMER - page is now fully interactive
+	const end = Date.now();
+	const seconds = (end - start) / 1000;
+	console.log("⏱ Login Educator tog:", seconds, "sekunder");
 
-  if (!loginSuccess) {
-  	throw new Error("Could not verify educator login success");
-  }
-
-  const end = Date.now();
-  const seconds = (end - start) / 1000;
-  console.log("⏱ Login Educator tog:", seconds, "sekunder");
-  return seconds;
+	return seconds;
 }

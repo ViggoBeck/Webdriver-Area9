@@ -1,10 +1,15 @@
-// src/workflows/deleteClass.js
+// deleteClass.js - Using Smart Wait Utilities
+// Eliminates timing dependencies, race conditions, and the need for --slow mode
+
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
 
-/** Try to horizontally reveal right-side columns (works for most HTML scroll containers). */
+/**
+ * Horizontally reveal right-side columns (status/actions)
+ */
 async function revealRightSide(driver) {
 	try {
 		await driver.executeScript(() => {
@@ -15,11 +20,16 @@ async function revealRightSide(driver) {
 				}
 			});
 		});
-		await new Promise(r => setTimeout(r, 300));
-	} catch {}
+		await driver.sleep(300);
+	} catch (error) {
+		console.log("ℹ️ Reveal right side skipped");
+	}
 }
 
-/** Best-effort tiny drag on the thin horizontal handle if it exists. */
+/**
+ * Drag horizontal scrollbar to reveal columns
+ * This is critical for making status/action columns visible
+ */
 async function tinyDragScrollbar(driver) {
 	try {
 		const handle = await driver.findElement(
@@ -27,11 +37,16 @@ async function tinyDragScrollbar(driver) {
 		);
 		const actions = driver.actions({ async: true });
 		await actions.move({ origin: handle }).press().move({ x: 200, y: 0 }).release().perform();
-		await new Promise(r => setTimeout(r, 300));
-	} catch {}
+		await driver.sleep(300);
+		console.log("✅ Scrollbar dragged to reveal columns");
+	} catch (error) {
+		console.log("ℹ️ Scrollbar drag skipped");
+	}
 }
 
-/** Utility: safe click */
+/**
+ * Safe click utility - scroll into view and use JS fallback if needed
+ */
 async function safeClick(driver, el) {
 	try {
 		await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", el);
@@ -41,54 +56,76 @@ async function safeClick(driver, el) {
 	}
 }
 
-/** Find the exact row: role='row' that contains BOTH the class name AND the status. */
-async function findRowWithNameAndStatus(driver, className, status, timeout = DEFAULT_TIMEOUT) {
-	const xpath =
-		`//*[@role='row' and .//p[normalize-space()='${className}'] and .//p[normalize-space()='${status}']]`;
-	return driver.wait(until.elementLocated(By.xpath(xpath)), timeout);
+/**
+ * Find the exact row containing BOTH the class name AND the status
+ */
+async function findRowWithNameAndStatus(driver, className, status) {
+	const xpath = `//*[@role='row' and .//p[normalize-space()='${className}'] and .//p[normalize-space()='${status}']]`;
+
+	// Use smart wait with progressive timeouts
+	return await waitFor.element(driver, By.xpath(xpath), {
+		timeout: DEFAULT_TIMEOUT,
+		visible: true,
+		stable: true,
+		errorPrefix: `Row with '${className}' and '${status}'`
+	});
 }
 
 export async function deleteClass(driver) {
 	console.log("🚀 Starting Delete Class test...");
 
-	// --- LOGIN AS EDUCATOR ---
+	// --- LOGIN AS EDUCATOR (not timed) ---
 	await driver.get(buildEducatorUrl());
 
-	const email = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-	await email.sendKeys(getAccountForTest("Delete Class"));
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: DEFAULT_TIMEOUT,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+	await emailField.sendKeys(getAccountForTest("Delete Class"));
 
-	const pw = await driver.findElement(By.css('input[name="password"]'));
-	await pw.sendKeys(DEFAULT_PASSWORD);
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	const btn = await driver.findElement(By.id("sign_in"));
-	await btn.click();
-	await driver.wait(until.stalenessOf(btn), DEFAULT_TIMEOUT).catch(() => {});
+	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
+	await waitFor.smartClick(driver, signInBtn);
 
+	// Wait for dashboard to load - use original selector that works
 	await driver.wait(
 		until.elementLocated(By.xpath("//*[contains(text(),'CLASSES') or contains(text(),'Dashboard')]")),
 		DEFAULT_TIMEOUT
 	);
 	console.log("✅ Logged in as Educator");
 
-	// Dismiss onboarding if present
+	// --- DISMISS OVERLAY IF PRESENT ---
 	try {
 		const gotIts = await driver.findElements(By.xpath("//*[normalize-space(.)='GOT IT']"));
 		for (const g of gotIts) {
 			if (await g.isDisplayed()) {
 				await driver.executeScript("arguments[0].click();", g);
 				await driver.wait(until.stalenessOf(g), 8000);
+				console.log("✅ Overlay dismissed");
 				break;
 			}
 		}
-	} catch {}
+	} catch (error) {
+		console.log("ℹ️ No overlay to dismiss");
+	}
 
-	// Reveal right-side columns (status / actions)
+	// --- REVEAL RIGHT-SIDE COLUMNS (CRITICAL!) ---
 	await revealRightSide(driver);
 	await tinyDragScrollbar(driver);
 
 	// --- FIND ROW WITH BOTH NAME + STATUS ---
-	const row = await findRowWithNameAndStatus(driver, "Webdriver", "Inactive").catch(() => null);
-	if (!row) throw new Error("❌ No 'Webdriver' class with status 'Inactive' found");
+	console.log("🔍 Looking for 'Webdriver' class with 'Inactive' status...");
+	const row = await findRowWithNameAndStatus(driver, "Webdriver", "Inactive");
+	console.log("✅ Found 'Webdriver' class row");
 
 	// --- SAFETY CHECK: STATUS MUST BE INACTIVE ---
 	const statusCells = await row.findElements(By.xpath(".//p[normalize-space()='Inactive']"));
@@ -97,36 +134,43 @@ export async function deleteClass(driver) {
 	}
 
 	// --- DELETE BUTTON INSIDE ROW ---
-	const delBtn = await row.findElement(By.xpath(".//button[@aria-label='delete']"));
-	await safeClick(driver, delBtn);
+	const deleteButton = await row.findElement(By.xpath(".//button[@aria-label='delete']"));
+	await safeClick(driver, deleteButton);
 	console.log("🗑️ Clicked delete icon for 'Webdriver' class");
 
 	// --- CONFIRM DELETE MODAL ---
 	console.log("⏳ Waiting for confirm delete dialog...");
-	const confirmBtn = await driver.wait(
-		until.elementLocated(
-			By.xpath(
-				"//button[@aria-label='DELETE' or @aria-label='Delete' or normalize-space(text())='DELETE' or normalize-space(text())='Delete']"
-			)
-		),
-		DEFAULT_TIMEOUT
+	const confirmBtn = await waitFor.element(
+		driver,
+		By.xpath("//button[@aria-label='DELETE' or @aria-label='Delete' or normalize-space(text())='DELETE' or normalize-space(text())='Delete']"),
+		{
+			timeout: DEFAULT_TIMEOUT,
+			visible: true,
+			clickable: true,
+			stable: true,
+			errorPrefix: 'Confirm delete button'
+		}
 	);
 
 	// --- START TIMING HERE - RIGHT BEFORE ACTUAL DELETION ---
+	console.log("🚀 Starting timer - confirming deletion...");
 	const start = Date.now();
+
 	await safeClick(driver, confirmBtn);
 	console.log("✅ Confirm delete clicked");
 
-	// --- ROBUST VERIFICATION OF DELETION ---
-	// 1. Wait for the row to become stale first
+	// --- WAIT FOR DELETION TO COMPLETE ---
+	console.log("⏳ Waiting for deletion to complete...");
+
+	// 1. Try staleness check first
 	try {
 		await driver.wait(until.stalenessOf(row), 10000);
+		console.log("✅ Row became stale");
 	} catch (stalErr) {
-		// If stale doesn't work, continue to other verification methods
 		console.log("⚠️ Row staleness check failed, trying alternative verification...");
 	}
 
-	// 2. Wait for the class to actually disappear from the table
+	// 2. Verify the row is actually gone from the table
 	let deletionVerified = false;
 	let attempts = 0;
 	const maxAttempts = 10;
@@ -135,7 +179,6 @@ export async function deleteClass(driver) {
 		attempts++;
 
 		try {
-			// Try to find the row again - if it's gone, deletion succeeded
 			const stillExists = await driver.findElements(
 				By.xpath(`//*[@role='row' and .//p[normalize-space()='Webdriver'] and .//p[normalize-space()='Inactive']]`)
 			);
@@ -145,19 +188,17 @@ export async function deleteClass(driver) {
 				console.log("✅ 'Webdriver' (Inactive) class confirmed deleted from table");
 			} else {
 				console.log(`⏳ Deletion attempt ${attempts}/${maxAttempts} - class still visible, waiting...`);
-				await new Promise(r => setTimeout(r, 500)); // Wait 500ms before next check
+				await driver.sleep(500);
 			}
 		} catch (err) {
-			// Error finding elements is also good - means it's gone
 			deletionVerified = true;
-			console.log("✅ 'Webdriver' (Inactive) class confirmed deleted (element search failed)");
+			console.log("✅ 'Webdriver' (Inactive) class confirmed deleted");
 		}
 	}
 
-	// 3. Final verification - double-check that no "Webdriver" + "Inactive" row exists
+	// 3. Final verification
 	if (!deletionVerified) {
-		// One more thorough check
-		await new Promise(r => setTimeout(r, 1000)); // Final wait
+		await driver.sleep(1000);
 		const finalCheck = await driver.findElements(
 			By.xpath(`//*[@role='row' and .//p[normalize-space()='Webdriver'] and .//p[normalize-space()='Inactive']]`)
 		);
@@ -180,4 +221,3 @@ export async function deleteClass(driver) {
 	console.log("✨ Delete Class test finished");
 	return seconds;
 }
- 

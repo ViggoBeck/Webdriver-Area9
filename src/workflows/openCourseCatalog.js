@@ -1,157 +1,217 @@
-import { By, until } from "selenium-webdriver";
+// openCourseCatalog.js - Using Smart Wait Utilities
+// Eliminates timing dependencies, race conditions, and the need for --slow mode
+
+import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { buildLearnerUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function openCourseCatalog(driver) {
-  // --- LOGIN (ikke timed) ---
-  await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	// --- LOGIN (not timed) ---
+	console.log("🌐 Navigating to learner URL for Course Catalog test...");
+	await driver.get(buildLearnerUrl());
 
-  const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), 20000);
-  await emailField.sendKeys(getAccountForTest("Open Course Catalog"));
+	// Smart login with automatic detection and completion
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 15000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+	await emailField.sendKeys(getAccountForTest("Open Course Catalog"));
 
-  const passwordField = await driver.findElement(By.css('input[name="password"]'));
-  await passwordField.sendKeys(DEFAULT_PASSWORD);
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-  const signInBtn = await driver.findElement(By.id("sign_in"));
-  await signInBtn.click();
-  await driver.wait(until.stalenessOf(signInBtn), 15000).catch(() => {});
+	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
 
-  // --- DASHBOARD ---
-  await driver.wait(until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")), 30000);
-  console.log("✅ Dashboard loaded successfully");
+	await waitFor.smartClick(driver, signInBtn);
 
-  // --- INITIAL OVERLAY DISMISSAL ---
-  await dismissLearnerOverlay(driver, "(after login)");
+	// Wait for learner login to complete
+	await waitFor.loginComplete(driver, 'learner', 20000);
+	console.log("✅ Login completed, dashboard loaded");
 
-  // Additional pause to let any animations settle
-  await new Promise(resolve => setTimeout(resolve, 1000));
+	// --- INITIAL OVERLAY DISMISSAL ---
+	await dismissLearnerOverlay(driver);
 
-  // --- OPEN MENU WITH ROBUST RETRY LOGIC ---
-  console.log("🍔 Opening menu for Course Catalog access...");
-  let menuBtn = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-  	try {
-  		// Dismiss any overlays that might interfere (only on retry attempts)
-  		if (attempt > 1) {
-  			await dismissLearnerOverlay(driver, "(before menu retry)");
-  		}
+	// Wait for page to stabilize after overlay dismissal (KEY FIX)
+	await waitFor.networkIdle(driver, 1000, 5000);
+	console.log("✅ Page stabilized after overlay dismissal");
 
-  		menuBtn = await driver.wait(
-  			until.elementLocated(By.xpath("//button[@aria-label='Show Menu']")),
-  			10000
-  		);
-  		await driver.wait(until.elementIsVisible(menuBtn), 2000);
+	// --- OPEN MENU FOR COURSE CATALOG ACCESS ---
+	console.log("🍔 Opening menu for Course Catalog access...");
 
-  		// Use JavaScript click for reliability
-  		await driver.executeScript("arguments[0].click();", menuBtn);
-  		console.log(`✅ Menu opened successfully`);
-  		break;
-  	} catch (e) {
-  		console.log(`⚠️ Menu open failed (attempt ${attempt}): ${e.message}`);
-  		if (attempt < 3) {
-  			await new Promise(r => setTimeout(r, 1000));
-  		}
-  	}
-  }
+	// Retry logic for menu button (like openScorm/openVideoProbe)
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			console.log(`🔍 Attempt ${attempt}: Finding menu button...`);
 
-  if (!menuBtn) {
-  	throw new Error("❌ Could not open menu for Course Catalog access");
-  }
+			// Find element fresh each time - only check visible and stable
+			const menuBtn = await waitFor.element(driver, selectorsFor.area9.showMenuButton(), {
+				timeout: 15000,
+				visible: true,
+				stable: true,
+				clickable: false, // Don't check clickability
+				errorPrefix: `Show Menu button (attempt ${attempt})`
+			});
 
-  // Wait for menu to fully appear
-  await new Promise(resolve => setTimeout(resolve, 1000));
+			// Scroll to center
+			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", menuBtn);
 
-  // --- FIND AND CLICK COURSE CATALOG WITH ROBUST RETRY ---
-  console.log("📚 Looking for Course Catalog button...");
-  let catalogBtn = null;
-  const start = Date.now(); // Start timing here
+			// Simple click with JS fallback
+			try {
+				await menuBtn.click();
+				console.log(`✅ Regular click succeeded`);
+			} catch (clickError) {
+				console.log(`⚠️ Regular click failed, using JS click`);
+				await driver.executeScript("arguments[0].click();", menuBtn);
+				console.log(`✅ JS click succeeded`);
+			}
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-  	try {
-  		// Dismiss any overlays that might have appeared when menu opened (only on retries)
-  		if (attempt > 1) {
-  			await dismissLearnerOverlay(driver, "(before catalog retry)");
-  		}
+			console.log("✅ Menu opened successfully");
+			break; // Success, exit retry loop
 
-  		catalogBtn = await driver.wait(
-  			until.elementLocated(By.xpath("//button[@aria-label='COURSE CATALOG']")),
-  			10000
-  		);
-  		await driver.wait(until.elementIsVisible(catalogBtn), 5000);
+		} catch (error) {
+			if (error.message.includes('stale element')) {
+				console.log(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
+				await waitFor.networkIdle(driver, 500, 3000);
+				continue;
+			}
 
-  		// Scroll into view
-  		await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", catalogBtn);
-  		await new Promise(r => setTimeout(r, 1000));
+			if (attempt === 3) {
+				throw new Error(`❌ Failed to click menu button after ${attempt} attempts: ${error.message}`);
+			}
 
-  		// Try JavaScript click directly (most reliable)
-  		await driver.executeScript("arguments[0].click();", catalogBtn);
-  		console.log(`✅ Course Catalog clicked successfully`);
-  		break;
+			console.log(`⚠️ Attempt ${attempt} failed: ${error.message}`);
+			await waitFor.networkIdle(driver, 1000, 3000);
+		}
+	}
 
-  	} catch (e) {
-  		console.log(`⚠️ Course Catalog click failed (attempt ${attempt}): ${e.message}`);
-  		if (attempt < 3) {
-  			await new Promise(r => setTimeout(r, 1000));
-  		}
-  	}
-  }
+	// Wait for menu to fully open (don't verify navigation, just let it settle)
+	await waitFor.networkIdle(driver, 500, 3000);
 
-  if (!catalogBtn) {
-  	throw new Error("❌ Could not click Course Catalog button after 3 attempts");
-  }
+	// --- START TIMER + CLICK COURSE CATALOG ---
+	console.log("📚 Looking for Course Catalog button...");
 
-  // --- VERIFY CATALOG CONTENT LOADED ---
-  console.log("📚 Verifying Course Catalog content loaded...");
-  let loaded = false;
+	// Retry logic for catalog button
+	let catalogClicked = false;
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			console.log(`🔍 Attempt ${attempt}: Finding Course Catalog button...`);
 
-  try {
-  	await driver.wait(
-  		until.elementLocated(By.xpath("//*[contains(text(),'Catalog') or contains(text(),'Course')]")),
-  		10000
-  	);
-  	console.log("✅ Catalog content detected via text");
-  	loaded = true;
-  } catch {
-  	// Fallback: check URL
-  	try {
-  		const url = await driver.getCurrentUrl();
-  		console.log(`🔍 Current URL: ${url}`);
-  		if (url.includes("catalog")) {
-  			console.log("✅ Catalog detected via URL");
-  			loaded = true;
-  		}
-  	} catch (e) {
-  		console.log("⚠️ Could not verify catalog load");
-  	}
-  }
+			const catalogBtn = await waitFor.element(driver, By.xpath("//button[@aria-label='COURSE CATALOG']"), {
+				timeout: 15000,
+				visible: true,
+				stable: true,
+				clickable: false, // Don't check clickability
+				errorPrefix: `Course Catalog button (attempt ${attempt})`
+			});
 
-  if (!loaded) {
-  	// Final attempt - check for any catalog-related elements
-  	try {
-  		const catalogElements = await driver.findElements(By.xpath("//*[contains(@class,'catalog') or contains(@class,'course')]"));
-  		if (catalogElements.length > 0) {
-  			console.log("✅ Catalog detected via CSS classes");
-  			loaded = true;
-  		}
-  	} catch (e) {
-  		console.log("⚠️ Final catalog verification failed");
-  	}
-  }
+			// Scroll to center
+			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", catalogBtn);
 
-  if (!loaded) {
-  	throw new Error("❌ Course Catalog did not load in time - no content detected");
-  }
+			console.log(`🔍 Attempt ${attempt}: Clicking Course Catalog button...`);
 
-  // --- STOP TIMER ---
-  const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-  console.log(`⏱ Course Catalog load took: ${seconds}s`);
+			// --- START TIMER RIGHT BEFORE CLICK ---
+			const start = Date.now();
 
-  await logCurrentState(driver, "Open Course Catalog");
-  await pauseForObservation(driver, "Course Catalog content loading", 2);
+			// Simple click with JS fallback
+			try {
+				await catalogBtn.click();
+				console.log(`✅ Regular click succeeded`);
+			} catch (clickError) {
+				console.log(`⚠️ Regular click failed, using JS click`);
+				await driver.executeScript("arguments[0].click();", catalogBtn);
+				console.log(`✅ JS click succeeded`);
+			}
 
-  // Perform logout after test completion
-  await performLearnerLogout(driver);
+			catalogClicked = true;
 
-  return seconds;
+			// --- WAIT FOR CATALOG CONTENT TO LOAD ---
+			console.log("📚 Waiting for Course Catalog content to load...");
+
+			// Wait for network activity to settle
+			await waitFor.networkIdle(driver, 1500, 10000);
+
+			// Verify catalog content loaded - use the actual HTML structure
+			let loaded = false;
+
+			// Strategy 1: Look for nativeWidget divs with images (the actual catalog content)
+			try {
+				await waitFor.element(driver, By.css('div.nativeWidget img'), {
+					timeout: 5000,
+					visible: true,
+					errorPrefix: 'Catalog content (nativeWidget with image)'
+				});
+				console.log("✅ Catalog content detected (nativeWidget structure)");
+				loaded = true;
+			} catch (error) {
+				// Try next strategy
+			}
+
+			// Strategy 2: Check URL contains "courses"
+			if (!loaded) {
+				const url = await driver.getCurrentUrl();
+				console.log(`🔍 Current URL: ${url}`);
+				if (url.includes("courses") || url.includes("#courses")) {
+					console.log("✅ Catalog detected via URL (#courses)");
+					loaded = true;
+				}
+			}
+
+			// Strategy 3: Look for any images (fallback)
+			if (!loaded) {
+				try {
+					const images = await driver.findElements(By.css('img'));
+					if (images.length > 0) {
+						console.log(`✅ Catalog detected via images (${images.length} found)`);
+						loaded = true;
+					}
+				} catch (error) {
+					// Continue to error
+				}
+			}
+
+			if (!loaded) {
+				throw new Error("❌ Course Catalog did not load in time - no content detected");
+			}
+
+			// --- STOP TIMER ---
+			const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
+			console.log(`⏱ Course Catalog load took: ${seconds}s`);
+
+			await logCurrentState(driver, "Open Course Catalog");
+			await pauseForObservation(driver, "Course Catalog content loading", 2);
+
+			// Perform logout after test completion
+			await performLearnerLogout(driver);
+
+			return seconds;
+
+		} catch (error) {
+			if (error.message.includes('stale element')) {
+				console.log(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
+				await waitFor.networkIdle(driver, 500, 3000);
+				continue;
+			}
+
+			if (attempt === 3) {
+				throw new Error(`❌ Failed to click Course Catalog after ${attempt} attempts: ${error.message}`);
+			}
+
+			console.log(`⚠️ Attempt ${attempt} failed: ${error.message}`);
+			await waitFor.networkIdle(driver, 1000, 3000);
+		}
+	}
+
+	if (!catalogClicked) {
+		throw new Error("❌ Could not click Course Catalog button after all retry attempts");
+	}
 }

@@ -1,85 +1,155 @@
-import { By, until } from "selenium-webdriver";
+// openVideoProbe.js - Using Smart Wait Utilities
+// Eliminates timing dependencies, race conditions, and the need for --slow mode
+
+import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
+import { buildLearnerUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function openVideoProbe(driver) {
-	// --- LOGIN (ikke timed) ---
+	// --- LOGIN (not timed) ---
+	console.log("🌐 Navigating to learner URL for Video Probe test...");
 	await driver.get(buildLearnerUrl());
 
-	const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-  await emailField.sendKeys(getAccountForTest("Open Video Probe"));
+	// Smart login with automatic detection and completion
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 15000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+	await emailField.sendKeys(getAccountForTest("Open Video Probe"));
 
-  const passwordField = await driver.findElement(By.css('input[name="password"]'));
-  await passwordField.sendKeys(DEFAULT_PASSWORD);
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-  const signInBtn = await driver.findElement(By.id("sign_in"));
-  await signInBtn.click();
+	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
 
-  await driver.wait(until.stalenessOf(signInBtn), DEFAULT_TIMEOUT).catch(() => {});
+	await waitFor.smartClick(driver, signInBtn);
 
-  // --- DASHBOARD ---
-  await driver.wait(
-  	until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
-  	DEFAULT_TIMEOUT
-  );
+	// Wait for learner login to complete
+	await waitFor.loginComplete(driver, 'learner', 20000);
+	console.log("✅ Login completed, dashboard loaded");
 
-  // --- DISMISS OVERLAY USING SHARED FUNCTION ---
-  await dismissLearnerOverlay(driver);
+	// --- DISMISS OVERLAY ---
+	await dismissLearnerOverlay(driver);
 
-  // --- FIND VIDEO BENCHMARK CARD ---
-  const videoCardXPath = `
-    //p[normalize-space()='1 Video Benchmark Test']
-    /ancestor::div[contains(@class,'nativeWidget')]
-    //button[@aria-label='1 Video' and not(@disabled)]
-  `;
+	// Wait for page to stabilize after overlay dismissal (KEY FIX from openScorm)
+	await waitFor.networkIdle(driver, 1000, 5000);
+	console.log("✅ Page stabilized after overlay dismissal");
 
-  let videoBtn;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-  	try {
-  		videoBtn = await driver.wait(until.elementLocated(By.xpath(videoCardXPath)), DEFAULT_TIMEOUT);
-  		await driver.wait(until.elementIsVisible(videoBtn), 5000);
-      await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", videoBtn);
+	// --- LOCATE AND CLICK VIDEO BENCHMARK CARD ---
+	console.log("🔍 Looking for Video Benchmark Test card...");
 
-      try {
-        await videoBtn.click();
-      } catch {
-        await driver.executeScript("arguments[0].click();", videoBtn);
-      }
-      break;
-    } catch {
-      if (attempt === 3) throw new Error("Could not click Video Benchmark Test card");
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  }
+	const videoCardXPath = `
+		//p[normalize-space()='1 Video Benchmark Test']
+		/ancestor::div[contains(@class,'nativeWidget')]
+		//button[@aria-label='1 Video' and not(@disabled)]
+	`;
 
-  // --- START TIMER EFTER KLIK ---
-  const start = Date.now();
+	// Retry logic with fresh element lookup (like openScorm)
+	let clicked = false;
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			console.log(`🔍 Attempt ${attempt}: Finding Video card button...`);
 
-  // --- VENT PÅ VIDEO FILE ---
-  let videoLoaded = false;
-  try {
-  	await driver.wait(until.elementLocated(By.css("video, iframe, embed, object")), DEFAULT_TIMEOUT);
-  	videoLoaded = true;
-  } catch {}
+			// Find element fresh each time - only check visible and stable (NOT clickable)
+			const videoBtn = await waitFor.element(driver, By.xpath(videoCardXPath), {
+				timeout: 15000,
+				visible: true,
+				stable: true,
+				clickable: false, // Don't check clickability - just like openScorm
+				errorPrefix: `Video Benchmark card button (attempt ${attempt})`
+			});
 
-  if (!videoLoaded) {
-    const url = await driver.getCurrentUrl();
-    if (url.includes("card=")) videoLoaded = true;
-  }
+			// Scroll to center (like openScorm)
+			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", videoBtn);
+			console.log(`✅ Scrolled to Video card`);
 
-  if (!videoLoaded) throw new Error("Video probe did not load in time");
+			console.log(`🔍 Attempt ${attempt}: Clicking Video card...`);
 
-  // --- STOP TIMER ---
-  const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-  console.log(`⏱ Video probe load took: ${seconds}s`);
+			// --- START TIMER RIGHT BEFORE CLICK ---
+			const start = Date.now();
 
-  await logCurrentState(driver, "Open Video Probe");
-  await pauseForObservation(driver, "Video probe content loading", 3);
+			// Simple click with JS fallback (like openScorm)
+			try {
+				await videoBtn.click();
+				console.log(`✅ Regular click succeeded`);
+			} catch (clickError) {
+				console.log(`⚠️ Regular click failed, using JS click`);
+				await driver.executeScript("arguments[0].click();", videoBtn);
+				console.log(`✅ JS click succeeded`);
+			}
 
-  // Perform logout after test completion
-  await performLearnerLogout(driver);
+			clicked = true;
 
-  return seconds;
+			// --- WAIT FOR VIDEO CONTENT TO LOAD ---
+			console.log("⏳ Waiting for video content to load...");
+
+			// First, wait for navigation/page change
+			await waitFor.networkIdle(driver, 1500, 8000);
+
+			// Check for video player elements
+			let videoLoaded = false;
+
+			try {
+				// Try to find video/iframe elements
+				await waitFor.element(driver, By.css("video, iframe, embed, object"), {
+					timeout: 10000,
+					visible: true,
+					errorPrefix: 'Video player element'
+				});
+				videoLoaded = true;
+				console.log("✅ Video player detected");
+			} catch (error) {
+				// Fallback: check URL change
+				const url = await driver.getCurrentUrl();
+				if (url.includes("card=")) {
+					videoLoaded = true;
+					console.log("✅ Video detected via URL change");
+				}
+			}
+
+			if (!videoLoaded) {
+				throw new Error("Video probe content did not load in time");
+			}
+
+			// --- STOP TIMER ---
+			const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
+			console.log(`⏱ Video probe load took: ${seconds}s`);
+
+			await logCurrentState(driver, "Open Video Probe");
+			await pauseForObservation(driver, "Video probe content loading", 3);
+
+			// Perform logout after test completion
+			await performLearnerLogout(driver);
+
+			return seconds;
+
+		} catch (error) {
+			if (error.message.includes('stale element')) {
+				console.log(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
+				await waitFor.networkIdle(driver, 500, 3000);
+				continue;
+			}
+
+			if (attempt === 3) {
+				throw new Error(`❌ Failed to click Video card after ${attempt} attempts: ${error.message}`);
+			}
+
+			console.log(`⚠️ Attempt ${attempt} failed: ${error.message}`);
+			await waitFor.networkIdle(driver, 1000, 3000);
+		}
+	}
+
+	if (!clicked) {
+		throw new Error("❌ Could not click Video card after all retry attempts");
+	}
 }
