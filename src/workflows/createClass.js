@@ -6,6 +6,7 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function createClass(driver) {
 	// --- LOGIN (not timed) ---
@@ -122,6 +123,9 @@ export async function createClass(driver) {
 
 	await logCurrentState(driver, "Create Class");
 	await pauseForObservation(driver, "Class 'Webdriver' created successfully", 3);
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'educator');
 
 	return seconds;
 }

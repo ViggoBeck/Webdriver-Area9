@@ -5,6 +5,7 @@ import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function communicatorEducator(driver) {
 	// Use direct communicator URL during login
@@ -93,6 +94,14 @@ export async function communicatorEducator(driver) {
 
 	await logCurrentState(driver, "Communicator Educator");
 	await pauseForObservation(driver, "Communicator UI loaded", 2);
+
+	// --- LOGOUT ---
+	// Navigate back to main educator page before logout (communication page doesn't have proper menu)
+	console.log("🔄 Navigating back to main page for logout...");
+	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await new Promise(r => setTimeout(r, 2000)); // Wait for page to load
+
+	await performLogout(driver, 'educator');
 
 	return seconds;
 }

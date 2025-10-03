@@ -13,9 +13,6 @@ export async function openScorm(driver) {
 	console.log("🌐 Navigating to learner URL for SCORM test...");
 	await driver.get(buildLearnerUrl());
 
-	// Wait for page to fully load (includes network idle internally)
-	await waitFor.pageLoad(driver);
-
 	// Debug: Check current state
 	try {
 		const currentUrl = await driver.getCurrentUrl();
@@ -55,7 +52,6 @@ export async function openScorm(driver) {
 			// Force navigation back to login
 			console.log("🔄 Forcing fresh navigation to login page...");
 			await driver.get(buildLearnerUrl());
-			await waitFor.pageLoad(driver);
 
 			const emailField = await waitFor.element(driver, By.css('input[name="username"]'), {
 				timeout: 10000,

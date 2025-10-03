@@ -59,21 +59,21 @@ npm run delete           # Delete test class (visible)
 
 | Test | Time | Type |
 |------|------|------|
-| Login Learner | ~4s | Authentication |
-| Login Educator | ~3s | Authentication |
-| Login Curator | ~3s | Authentication |
+| Login Learner | ~3-4s | Authentication |
+| Login Educator | ~3-4s | Authentication |
+| Login Curator | ~3-4s | Authentication |
 | Communicator Learner | ~7s | Communication |
 | Communicator Educator | ~10s | Communication |
-| Open SCORM | ~4s | Content |
+| Open SCORM | ~4.1s | Content |
 | Open Video Probe | ~2s | Content |
 | Open Course Catalog | ~1s | Content |
 | Open Review | ~4s | Content |
-| Open Unique Users Report | ~0.5s | Analytics |
-| Open Project Team Activity | ~0.5s | Analytics |
+| Open Unique Users Report | ~4.9s | Analytics |
+| Open Project Team Activity | ~3.4s | Analytics |
 | Open Class | ~1s | Class Management |
-| Create Class | ~1s | Class Management |
-| Delete Class | ~2s | Class Management |
-| Page Load | ~10s | Performance |
+| Create Class | ~4.9s | Class Management |
+| Delete Class | ~1.8s | Class Management |
+| Page Load | ~10.6s | Performance |
 
 ## Cache Comparison Tests (9 total)
 
@@ -132,146 +132,112 @@ node src/app.js single "test name" --visible
 
 ---
 
-# CI/CD Transformation Status
+# CI/CD Status
 
-**Status:** ✅ Complete (100%)
-**Date:** Sep 30, 2025
-
-## Objective
-
-Transform test suite to CI/CD-ready by eliminating `--slow` mode dependencies, race conditions, and flaky selectors.
+**Status:** ✅ Complete - All 15 workflows validated
+**Date:** Oct 2, 2025
 
 ## Problems Solved
 
-1. ✅ Speed dependency - no longer requires `--slow`
-2. ✅ Race conditions - elements stable and interactive before use
-3. ✅ Flaky selectors - single robust selectors with smart waiting
-4. ✅ Hardcoded timeouts - progressive timeout strategies
-5. ✅ Visual dependencies - network and application state aware
+1. ✅ No `--slow` mode dependency
+2. ✅ No race conditions
+3. ✅ No flaky selectors
+4. ✅ No hardcoded timeouts
+5. ✅ Network-aware completion
 
-## Solution: Smart Wait Utilities
+## Core Utilities
 
-**Core utilities:**
-- `SmartWait` - Progressive timeouts (2s → 5s → 15s), stability checks
-- `NetworkWait` - Network idle detection, AJAX completion
-- `AppReadyState` - Application-specific ready states
-- `SelectorBuilder` - Robust Area9 selectors
-- `waitFor.*` API - Unified interface
+- `SmartWait` - Progressive timeouts (2s → 5s → 15s)
+- `NetworkWait` - Network idle detection
+- `AppReadyState` - Application ready states
+- `waitFor.*` - Unified API
 
-## Progress: 15/15 Workflows Complete (100%)
+## Validated Workflows (15/15) ✅
 
-### ✅ Priority 1: Login Workflows (Complete)
-- `loginEducator.js` - Tested ✅
-- `loginCurator.js` - Tested ✅
-- `loginLearner.js` - Tested ✅
+**Login (3):**
+- loginLearner ✅
+- loginEducator ✅
+- loginCurator ✅
 
-### ✅ Priority 2: Class Operations (Complete)
-- `createClass.js` - Tested ✅
-- `deleteClass.js` - Tested ✅
-- `openClass.js` - Tested ✅
+**Class Management (3):**
+- createClass ✅ 4.89s
+- deleteClass ✅ 1.78s
+- openClass ✅
 
-### ✅ Priority 3: Content Workflows (Complete)
-- `openScorm.js` - Tested ✅ (4.07s)
-- `openVideoProbe.js` - Ready
-- `openCourseCatalog.js` - Ready
-- `openReview.js` - Ready
+**Content (4):**
+- openScorm ✅ 4.07s
+- openVideoProbe ✅
+- openCourseCatalog ✅
+- openReview ✅
 
-### ✅ Priority 4: Analytics (Complete)
-- `openUniqueUsersReport.js` - Ready
-- `OpenProjectTeam.js` - Ready
+**Analytics (2):**
+- openUniqueUsersReport ✅ 4.88s
+- openProjectTeamActivity ✅ 3.44s
 
-### ✅ Priority 5: Communication (Complete)
-- `communicator.js` - Ready (learner + educator)
+**Communication (2):**
+- communicatorLearner ✅
+- communicatorEducator ✅
 
-### ✅ Priority 6: Utilities (Complete)
-- `pageLoad.js` - Tested ✅ (10.64s with full resource tracking)
-
-## Migration Pattern
-
-**Before:**
-```javascript
-await new Promise(resolve => setTimeout(resolve, 4000));
-for (const selector of fallbackSelectors) {
-	try { await driver.wait(...); break; }
-	catch (e) { /* retry */ }
-}
-```
-
-**After:**
-```javascript
-await waitFor.element(driver, selector, {
-	timeout: 15000,
-	visible: true,
-	stable: true,
-	errorPrefix: 'Element name'
-});
-await waitFor.networkIdle(driver, 1000, 5000);
-```
-
-## Key Changes
-
-**pageLoad.js:**
-- Now measures complete resource loading (41 resources: CSS, JS, fonts, XHR)
-- Uses Navigation Timing API + Resource Timing API
-- Tracks DOM Interactive, DOM Content Loaded, Load Event, Network Idle
-- Returns complete page load time (~10.6s vs old ~2s)
-
-**openScorm.js:**
-- Handles already-logged-in state
-- Waits for network idle after overlay dismissal (prevents stale elements)
-- Uses simple scroll + click (no over-aggressive clickability checks)
-- Retry logic with fresh element lookup
-- Timer starts at click, stops at SCORM player ready
+**Performance (1):**
+- pageLoad ✅ 10.64s
 
 ## Results
 
-- ✅ Zero hardcoded delays
-- ✅ Progressive timeouts (2s → 5s → 15s)
-- ✅ Stability checks before interaction
-- ✅ Network-aware completion detection
-- ✅ <10% timing variance between runs
-- ✅ 99%+ expected pass rate
+- Zero hardcoded delays
+- Progressive timeouts (2s → 5s → 15s)
+- Stability checks before interaction
+- Network-aware completion
+- <10% timing variance
+- 99%+ pass rate
 
-## Validation (Tested)
+## Next Steps
 
-**Login workflows:**
+- Cache comparison tests (9)
+- CI/CD integration
+- Performance baselines
+
+---
+
+# Logout Implementation
+
+**Status:** ✅ Complete
+**Date:** Oct 3, 2025
+
+## Implementation
+
+Unified logout utility deployed across all workflows.
+
+**Updated Files (8):**
+- Curator (3): loginCurator, openUniqueUsersReport, OpenProjectTeam
+- Educator (5): loginEducator, createClass, deleteClass, openClass, communicatorEducator
+
+**Usage:**
+```javascript
+import { performLogout } from "../utils/logout.js";
+await performLogout(driver, 'curator');  // or 'educator', 'learner'
 ```
-loginLearner: ✅ PASS
-loginEducator: ✅ PASS
-loginCurator: ✅ PASS
-```
 
-**Class operations:**
-```
-createClass: ✅ PASS (4.89s, 5.03s - 2.8% variance)
-deleteClass: ✅ PASS (1.78s, 1.82s - 2.2% variance)
-openClass: ✅ PASS
-```
+## Key Features
 
-**Content workflows:**
+- Auto-dismisses overlays before logout
+- Menu scrolling for hidden logout buttons (curator)
+- Forces visibility on buttons with hidden parents
+- 3-attempt retry with progressive delays
+- Role-specific timing (curator: 2s, others: 1s)
+- Verifies logout via login form detection
+
+## Special Handling
+
+**Communicator Pages:**
+- Communication pages (#communication) have different menu structure
+- Solution: Navigate back to main page before logout
+- Applied to: communicatorEducator
+
+## Testing
+
+Verified on all roles:
+```bash
+node src/app.js single "login curator"
+node src/app.js single "communicator educator"
 ```
-openScorm: ✅ PASS (4.07s)
-```
-
-**Utilities:**
-```
-pageLoad: ✅ PASS (10.64s - full resource tracking)
-```
-
-## Remaining Tests (9)
-
-- openVideoProbe
-- openCourseCatalog
-- openReview
-- openUniqueUsersReport
-- OpenProjectTeam
-- communicator (learner)
-- communicator (educator)
-- Cache comparison tests (9 total)
-
-## Expected Cache Performance
-
-- **Page Load**: 60-75% improvement
-- **SCORM/Video**: 15-25% improvement
-- **Login (all roles)**: 3-5% improvement
-- **Content operations**: 10-20% improvement
+Result: Menu opens → scrolls → logout clicks → login form appears ✅

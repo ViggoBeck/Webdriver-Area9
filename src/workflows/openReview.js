@@ -42,8 +42,7 @@ export async function openReview(driver) {
 	console.log("🔄 Navigating to class content page...");
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#home&t=classes/class&class=785&t=classcontent");
 
-	// Wait for page to load completely
-	await waitFor.pageLoad(driver, 15000);
+	// Wait for page to stabilize after complex navigation
 	await waitFor.networkIdle(driver, 1000, 8000);
 
 	// --- START TIMER + CLICK REVIEWS TAB ---

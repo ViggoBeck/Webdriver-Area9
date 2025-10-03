@@ -1,4 +1,4 @@
-import { createDriver } from "./utils/driver.js";
+import { createDriver, waitFor } from "./utils/driver.js";
 import { loginLearner } from "./workflows/loginLearner.js";
 import { loginEducator } from "./workflows/loginEducator.js";
 import { loginCurator } from "./workflows/loginCurator.js";
@@ -80,7 +80,18 @@ async function clearSession(driver) {
 
 		// Step 3: Navigate to about:blank to reset DOM state
 		await driver.get("about:blank");
-		await new Promise(resolve => setTimeout(resolve, 1500));
+
+		// Wait for about:blank to fully load (smart wait instead of hardcoded delay)
+		await driver.wait(async () => {
+			try {
+				const readyState = await driver.executeScript('return document.readyState');
+				return readyState === 'complete';
+			} catch (e) {
+				return false;
+			}
+		}, 5000).catch(() => {
+			// Continue even if this check fails
+		});
 
 		// Step 4: Clear cookies again after navigation
 		try {
@@ -97,8 +108,13 @@ async function clearSession(driver) {
 			// CDP commands not available in all Chrome versions
 		}
 
-		// Step 6: Longer wait for complete state reset (crucial for complex UI tests)
-		await new Promise(resolve => setTimeout(resolve, 3000));
+		// Step 6: Ensure browser is completely stable using smart network idle wait
+		// This ensures the next test starts with a fully ready browser
+		try {
+			await waitFor.networkIdle(driver, 500, 3000);
+		} catch (e) {
+			// Continue even if network idle check fails
+		}
 
 		console.log("✅ Enhanced session reset completed");
 	} catch (error) {

@@ -6,6 +6,7 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildCuratorUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function openUniqueUsersReport(driver) {
 	// --- LOGIN (not timed) ---
@@ -125,6 +126,9 @@ export async function openUniqueUsersReport(driver) {
 
 	await logCurrentState(driver, "Open Unique Users Report");
 	await pauseForObservation(driver, "Unique Users Report content");
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'curator');
 
 	return seconds;
 }

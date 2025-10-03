@@ -3,6 +3,7 @@
 
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function loginCurator(driver) {
 	await driver.get("https://br.uat.sg.rhapsode.com/curator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
@@ -44,6 +45,9 @@ export async function loginCurator(driver) {
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
 	console.log("⏱ Login Curator tog:", seconds, "sekunder");
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'curator');
 
 	return seconds;
 }

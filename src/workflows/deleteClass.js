@@ -6,6 +6,7 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 /**
  * Horizontally reveal right-side columns (status/actions)
@@ -217,6 +218,9 @@ export async function deleteClass(driver) {
 
 	await logCurrentState(driver, "Delete Class");
 	await pauseForObservation(driver, "Class deletion complete", 3);
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'educator');
 
 	console.log("✨ Delete Class test finished");
 	return seconds;

@@ -3,6 +3,7 @@
 
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function loginEducator(driver) {
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
@@ -44,6 +45,9 @@ export async function loginEducator(driver) {
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
 	console.log("⏱ Login Educator tog:", seconds, "sekunder");
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'educator');
 
 	return seconds;
 }

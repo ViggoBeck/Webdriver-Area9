@@ -6,6 +6,7 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/logout.js";
 
 export async function openClass(driver) {
 	console.log("🚀 Starting Open Class test...");
@@ -82,6 +83,9 @@ export async function openClass(driver) {
 
 	await logCurrentState(driver, "Open Class");
 	await pauseForObservation(driver, "Class opened - viewing class content", 3);
+
+	// --- LOGOUT ---
+	await performLogout(driver, 'educator');
 
 	console.log("✨ Open Class test finished");
 	return seconds;
