@@ -215,8 +215,9 @@ async function runTests(testSuite, suiteName, options = {}) {
 					await clearSession(driver);
 				}
 
-				// Longer pause between tests for proper state reset (especially UI-heavy tests)
-				const pauseTime = options.slowMode ? 6000 : 4000;
+				// Brief pause between tests (session clearing handles state reset)
+				// Increased in slow mode for observation
+				const pauseTime = options.slowMode ? 3000 : 1500;
 				await new Promise(resolve => setTimeout(resolve, pauseTime));
 			} catch (testErr) {
 				console.error(`❌ Error in ${test.name}:`, testErr.message);

@@ -3,15 +3,14 @@
 
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { buildLearnerUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function openScorm(driver) {
 	// --- LOGIN (not timed) ---
 	console.log("🌐 Navigating to learner URL for SCORM test...");
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	// Debug: Check current state
 	try {
@@ -51,7 +50,7 @@ export async function openScorm(driver) {
 		} else {
 			// Force navigation back to login
 			console.log("🔄 Forcing fresh navigation to login page...");
-			await driver.get(buildLearnerUrl());
+			await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 			const emailField = await waitFor.element(driver, By.css('input[name="username"]'), {
 				timeout: 10000,
@@ -125,7 +124,7 @@ export async function openScorm(driver) {
 	}
 
 	// --- DISMISS OVERLAY USING SHARED FUNCTION ---
-	await dismissLearnerOverlay(driver);
+	await dismissOverlays(driver);
 
 	// Wait for page to stabilize after overlay dismissal
 	await waitFor.networkIdle(driver, 1000, 5000);
@@ -207,7 +206,7 @@ export async function openScorm(driver) {
 			await pauseForObservation(driver, "SCORM content loading", 3);
 
 			// Perform logout after test completion
-			await performLearnerLogout(driver);
+			await performLogout(driver, 'learner');
 
 			return seconds;
 

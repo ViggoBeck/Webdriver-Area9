@@ -1,7 +1,7 @@
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { logResult } from "../utils/log.js";
 
 // Single Course Catalog access from menu (assumes already on dashboard)
@@ -15,7 +15,7 @@ async function openCourseCatalogFromMenu(driver) {
 		try {
 			// Dismiss any overlays that might interfere (only on retry attempts)
 			if (attempt > 1) {
-				await dismissLearnerOverlay(driver, "(before menu retry)");
+				await dismissOverlays(driver, "(before menu retry)");
 			}
 
 			menuBtn = await driver.wait(
@@ -51,7 +51,7 @@ async function openCourseCatalogFromMenu(driver) {
 		try {
 			// Dismiss any overlays that might have appeared when menu opened (only on retries)
 			if (attempt > 1) {
-				await dismissLearnerOverlay(driver, "(before catalog retry)");
+				await dismissOverlays(driver, "(before catalog retry)");
 			}
 
 			catalogBtn = await driver.wait(
@@ -155,7 +155,7 @@ export async function compareCourseCatalog(driver) {
 	console.log("✅ Dashboard loaded successfully");
 
 	// --- INITIAL OVERLAY DISMISSAL ---
-	await dismissLearnerOverlay(driver, "(after login)");
+	await dismissOverlays(driver, "(after login)");
 	await new Promise(resolve => setTimeout(resolve, 1000));
 
 	// === COLD/WARM COMPARISON ===
@@ -209,7 +209,7 @@ export async function compareCourseCatalog(driver) {
 	logResult("Open Course Catalog (warm)", warm);
 
 	// === CLEANUP ===
-	await performLearnerLogout(driver);
+	await performLogout(driver, 'learner');
 
 	// === SUMMARY ===
 	const diff = cold - warm;

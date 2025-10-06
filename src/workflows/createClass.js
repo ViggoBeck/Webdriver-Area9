@@ -1,54 +1,19 @@
-// createClass.js - Using Smart Wait Utilities
+// createClass.js - Using Smart Wait Utilities & Unified Auth
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By, until } from "selenium-webdriver";
-import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { getAccountForTest } from "../utils/accounts.js";
 import { buildEducatorUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
-import { performLogout } from "../utils/logout.js";
+import { performLogin, performLogout } from "../utils/auth.js";
 
 export async function createClass(driver) {
 	// --- LOGIN (not timed) ---
 	await driver.get(buildEducatorUrl());
 
-	// Use smart waiting instead of hardcoded DEFAULT_TIMEOUT
-	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
-		timeout: 15000,
-		visible: true,
-		errorPrefix: 'Username field'
-	});
-	await emailField.sendKeys(getAccountForTest("Create Class"));
-
-	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
-		visible: true,
-		errorPrefix: 'Password field'
-	});
-	await passwordField.sendKeys(DEFAULT_PASSWORD);
-
-	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
-		clickable: true,
-		errorPrefix: 'Sign in button'
-	});
-
-	// Smart click handles scrolling and fallback to JS click automatically
-	await waitFor.smartClick(driver, signInBtn);
-
-	// Wait for login to complete instead of checking staleness
-	await waitFor.loginComplete(driver, 'educator');
-
-	// --- DISMISS OVERLAY IF PRESENT ---
-	try {
-		const gotItButton = await waitFor.element(driver, selectorsFor.area9.gotItButton(), {
-			timeout: 3000,
-			visible: true,
-			errorPrefix: 'Got It overlay button'
-		});
-		await waitFor.smartClick(driver, gotItButton);
-		console.log("✅ Overlay dismissed");
-	} catch (error) {
-		console.log("ℹ️ No overlay to dismiss");
-	}
+	const assignedAccount = getAccountForTest("Create Class");
+	await performLogin(driver, 'educator', assignedAccount);
 
 	// --- LOCATE ADD/CREATE CLASS BUTTON ---
 	console.log("🔍 Looking for 'add' button to create new class...");
@@ -124,7 +89,7 @@ export async function createClass(driver) {
 	await logCurrentState(driver, "Create Class");
 	await pauseForObservation(driver, "Class 'Webdriver' created successfully", 3);
 
-	// --- LOGOUT ---
+	// --- LOGOUT (using unified auth) ---
 	await performLogout(driver, 'educator');
 
 	return seconds;

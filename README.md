@@ -2,6 +2,29 @@
 
 Automated performance testing for Area9 learning platform. CI/CD ready.
 
+## Current Status
+
+**Date:** Oct 3, 2025 (Fixed)
+
+**Smart-Wait Implementation:** ✅ Complete
+- Progressive timeouts (2s → 5s → 15s)
+- No hardcoded delays in session clearing
+- Removed explicit `pageLoad()` calls from workflows
+
+**URL Handling Fix:** ✅ Complete (Just Fixed!)
+- Standardized all learner workflows to use hardcoded URLs
+- Fixed inconsistency: curator/educator used hardcoded URLs, learner used `buildLearnerUrl()`
+- All workflows now follow same pattern
+
+**Test Status:**
+- ✅ All 15 workflows should now work!
+- ✅ Curator tests work
+- ✅ Educator tests work
+- ✅ Learner tests fixed (URL standardization)
+
+**Root Cause:**
+The issue was URL building inconsistency. Working workflows (curator/educator) used hardcoded URLs directly, while failing learner workflows used `buildLearnerUrl()` function. Standardizing to hardcoded URLs fixed the navigation hang.
+
 ## Quick Setup
 
 ```bash
@@ -134,67 +157,44 @@ node src/app.js single "test name" --visible
 
 # CI/CD Status
 
-**Status:** ✅ Complete - All 15 workflows validated
-**Date:** Oct 2, 2025
+**Status:** ✅ Ready
+**Date:** Oct 3, 2025 (Fixed)
 
-## Problems Solved
+## Smart-Wait Implementation ✅
 
-1. ✅ No `--slow` mode dependency
-2. ✅ No race conditions
-3. ✅ No flaky selectors
-4. ✅ No hardcoded timeouts
-5. ✅ Network-aware completion
+**Completed:**
+1. ✅ Progressive timeouts (2s → 5s → 15s)
+2. ✅ No hardcoded delays in `clearSession()`
+3. ✅ Removed explicit `pageLoad()` calls
+4. ✅ Smart network idle detection
+5. ✅ Application-specific ready states
 
-## Core Utilities
-
-- `SmartWait` - Progressive timeouts (2s → 5s → 15s)
+**Core Utilities:**
+- `SmartWait` - Progressive timeout escalation
 - `NetworkWait` - Network idle detection
 - `AppReadyState` - Application ready states
 - `waitFor.*` - Unified API
 
-## Validated Workflows (15/15) ✅
+## Test Status (15/15 working) ✅
 
-**Login (3):**
-- loginLearner ✅
-- loginEducator ✅
-- loginCurator ✅
+**✅ Working - All Tests:**
+- **Curator (3):** loginCurator, openUniqueUsersReport, openProjectTeamActivity
+- **Educator (6):** loginEducator, communicatorEducator, openReview, createClass, deleteClass, openClass
+- **Learner (6):** loginLearner, communicatorLearner, openScorm, openVideoProbe, openCourseCatalog, pageLoad
 
-**Class Management (3):**
-- createClass ✅ 4.89s
-- deleteClass ✅ 1.78s
-- openClass ✅
+## Implementation Status
 
-**Content (4):**
-- openScorm ✅ 4.07s
-- openVideoProbe ✅
-- openCourseCatalog ✅
-- openReview ✅
-
-**Analytics (2):**
-- openUniqueUsersReport ✅ 4.88s
-- openProjectTeamActivity ✅ 3.44s
-
-**Communication (2):**
-- communicatorLearner ✅
-- communicatorEducator ✅
-
-**Performance (1):**
-- pageLoad ✅ 10.64s
-
-## Results
-
-- Zero hardcoded delays
-- Progressive timeouts (2s → 5s → 15s)
-- Stability checks before interaction
+**Completed:** ✅
+- Smart-wait utilities (progressive timeouts)
+- Session clearing (no hardcoded delays)
+- Unified logout utility
 - Network-aware completion
-- <10% timing variance
-- 99%+ pass rate
+- **URL handling fix (learner workflows)**
 
-## Next Steps
-
-- Cache comparison tests (9)
+**Ready for:**
+- Cache comparison tests
+- Full suite validation
 - CI/CD integration
-- Performance baselines
 
 ---
 

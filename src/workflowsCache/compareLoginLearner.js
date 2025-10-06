@@ -2,7 +2,7 @@
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
+import { DEFAULT_TIMEOUT } from "../utils/config.js";
 import { logColdResult, logWarmResult, logCacheComparison } from "../utils/log.js";
 
 /** Dismiss overlay if present */
@@ -52,7 +52,7 @@ async function performSingleLogin(driver, loginType) {
 	// --- PAGE LOAD TIMING ---
 	console.log(`🌐 Measuring ${loginType} page load...`);
 	const pageLoadStart = Date.now();
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	const emailField = await driver.wait(
 		until.elementLocated(By.css('input[name="username"]')),

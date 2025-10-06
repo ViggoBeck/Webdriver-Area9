@@ -1,7 +1,6 @@
 // pageLoad.js - Enhanced resource-aware page load measurement
 // Measures complete page load including all CSS, JS, fonts, images, and XHR requests
 
-import { buildLearnerUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor } from "../utils/driver.js";
 
@@ -13,7 +12,7 @@ export async function pageLoad(driver) {
 	const startTime = Date.now();
 
 	// Navigate to page
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	// Wait for initial page load event
 	await driver.executeScript(`

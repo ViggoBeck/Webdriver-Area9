@@ -1,5 +1,5 @@
 // src/workflowsCache/comparePageLoad.js
-import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
+import { DEFAULT_TIMEOUT } from "../utils/config.js";
 import { logColdResult, logWarmResult, logCacheComparison } from "../utils/log.js";
 import { getAccountForTest } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
@@ -10,7 +10,7 @@ async function measurePageLoad(driver, label) {
 
 	// Navigate to page and start timing
 	console.log(`🚀 Starting ${label} page load timer...`);
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	// Wait until browser signals full load
 	await driver.wait(async () => {

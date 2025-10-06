@@ -3,7 +3,7 @@
 
 import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 
@@ -96,10 +96,10 @@ export async function communicatorLearner(driver) {
 	await pauseForObservation(driver, "Communicator UI loaded", 2);
 
 	// Dismiss any onboarding overlays
-	await dismissLearnerOverlay(driver);
+	await dismissOverlays(driver);
 
 	// Perform logout
-	await performLearnerLogout(driver);
+	await performLogout(driver, 'learner');
 
 	return seconds;
 }

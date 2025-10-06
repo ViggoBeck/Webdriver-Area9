@@ -3,15 +3,14 @@
 
 import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { buildLearnerUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function openCourseCatalog(driver) {
 	// --- LOGIN (not timed) ---
 	console.log("🌐 Navigating to learner URL for Course Catalog test...");
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
@@ -39,7 +38,7 @@ export async function openCourseCatalog(driver) {
 	console.log("✅ Login completed, dashboard loaded");
 
 	// --- INITIAL OVERLAY DISMISSAL ---
-	await dismissLearnerOverlay(driver);
+	await dismissOverlays(driver);
 
 	// Wait for page to stabilize after overlay dismissal (KEY FIX)
 	await waitFor.networkIdle(driver, 1000, 5000);
@@ -191,7 +190,7 @@ export async function openCourseCatalog(driver) {
 			await pauseForObservation(driver, "Course Catalog content loading", 2);
 
 			// Perform logout after test completion
-			await performLearnerLogout(driver);
+			await performLogout(driver, 'learner');
 
 			return seconds;
 

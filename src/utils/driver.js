@@ -31,18 +31,25 @@ export const selectorsFor = {
 export async function createDriver(visible = false, slowMode = false) {
 	const options = new chrome.Options();
 
+	// Use 'none' page load strategy for ARM Mac + Chrome 141 compatibility
+	// This prevents hanging on navigation
+	options.setPageLoadStrategy('none');
+
 	// Base Chrome options for all modes
 	const baseOptions = [
 		'--no-sandbox',
-		'--disable-web-security',
-		'--allow-running-insecure-content'
+		'--disable-dev-shm-usage',
+		'--disable-blink-features=AutomationControlled',  // Prevent detection
+		'--disable-extensions',
+		'--disable-popup-blocking',
+		'--disable-infobars'
 	];
 
 	// Add mode-specific options
 	if (!visible) {
 		options.addArguments([
 			...baseOptions,
-			'--disable-dev-shm-usage',
+			'--headless=new',  // Use new headless mode
 			'--disable-gpu'
 		]);
 	} else {
@@ -65,7 +72,22 @@ export async function createDriver(visible = false, slowMode = false) {
 			.setChromeOptions(options)
 			.build();
 
+		// Set timeouts to prevent hanging
+		await driver.manage().setTimeouts({
+			pageLoad: 30000,      // 30 seconds for page load
+			implicit: 0,          // Don't use implicit waits (we use explicit waits)
+			script: 30000         // 30 seconds for async scripts
+		});
 
+		// Wrap driver.get() to handle 'none' page load strategy
+		const originalGet = driver.get.bind(driver);
+		driver.get = async function(url) {
+			await originalGet(url);
+			// With 'none' strategy, we need to wait for document.readyState
+			await driver.executeScript('return document.readyState').catch(() => {});
+			// Small delay to ensure page starts loading
+			await new Promise(resolve => setTimeout(resolve, 500));
+		};
 
 		return driver;
 	} catch (error) {

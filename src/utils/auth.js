@@ -1,11 +1,12 @@
-// logout.js - Unified logout utility for all roles
-// Based on proven learner-utils.js pattern
+// auth.js - Unified authentication utilities for all roles
+// Consolidates login/logout logic with smart waits
 
 import { By, until } from "selenium-webdriver";
+import { waitFor, selectorsFor } from "./driver.js";
+import { DEFAULT_PASSWORD } from "./accounts.js";
 
 /**
- * Dismiss overlays that might interfere with logout
- * Reused from learner-utils.js
+ * Dismiss overlays that might interfere with login/logout
  */
 async function dismissOverlays(driver) {
 	let dismissed = 0;
@@ -24,11 +25,15 @@ async function dismissOverlays(driver) {
 		try {
 			const buttons = await driver.findElements(selector);
 			for (let btn of buttons) {
-				if (await btn.isDisplayed()) {
-					await driver.executeScript("arguments[0].click();", btn);
-					await new Promise(r => setTimeout(r, 500));
-					dismissed++;
-					break;
+				try {
+					if (await btn.isDisplayed()) {
+						await driver.executeScript("arguments[0].click();", btn);
+						await new Promise(r => setTimeout(r, 500));
+						dismissed++;
+						break;
+					}
+				} catch (e) {
+					// Element might have gone stale, continue
 				}
 			}
 		} catch (e) {
@@ -40,37 +45,34 @@ async function dismissOverlays(driver) {
 		console.log(`✅ Dismissed ${dismissed} overlay(s)`);
 		await new Promise(r => setTimeout(r, 1000));
 	}
+
+	return dismissed;
 }
 
 /**
- * Scroll menu to reveal logout button - multiple strategies
+ * Scroll menu to reveal logout button
  */
 async function scrollMenuToRevealLogout(driver) {
 	try {
 		const scrolled = await driver.executeScript(`
-			// Strategy 1: Find logout button first and scroll it into view
+			// Strategy 1: Find logout button and scroll it into view
 			const logoutButtons = document.querySelectorAll('button[aria-label="LOGOUT"]');
 			if (logoutButtons.length > 0) {
 				for (const btn of logoutButtons) {
-					// Try to scroll the button into view
 					btn.scrollIntoView({block: 'end', inline: 'nearest'});
-
-					// Also try scrolling any scrollable parent
 					let parent = btn.parentElement;
 					while (parent) {
 						if (parent.scrollHeight > parent.clientHeight) {
 							parent.scrollTop = parent.scrollHeight;
-							console.log('Scrolled parent to bottom:', parent.className);
 						}
 						parent = parent.parentElement;
 						if (parent === document.body) break;
 					}
 				}
-				console.log('Scrolled to logout button using scrollIntoView');
 				return true;
 			}
 
-			// Strategy 2: Find menu container with overflow and scroll it
+			// Strategy 2: Find menu container and scroll it
 			const containers = document.querySelectorAll('.nativeWidget');
 			for (const container of containers) {
 				const style = window.getComputedStyle(container);
@@ -79,30 +81,12 @@ async function scrollMenuToRevealLogout(driver) {
 					if (maskContainer) {
 						const containerHeight = container.offsetHeight;
 						const contentHeight = maskContainer.offsetHeight;
-
 						if (contentHeight > containerHeight) {
 							const scrollAmount = contentHeight - containerHeight;
 							maskContainer.style.transform = 'translateY(-' + scrollAmount + 'px)';
-							console.log('Scrolled maskContainer by', scrollAmount, 'px');
 							return true;
 						}
 					}
-				}
-			}
-
-			// Strategy 3: Scroll any role="list" container
-			const lists = document.querySelectorAll('[role="list"]');
-			for (const list of lists) {
-				if (list.scrollHeight > list.clientHeight) {
-					list.scrollTop = list.scrollHeight;
-					console.log('Scrolled list container to bottom');
-					return true;
-				}
-				const parent = list.parentElement;
-				if (parent && parent.scrollHeight > parent.clientHeight) {
-					parent.scrollTop = parent.scrollHeight;
-					console.log('Scrolled list parent to bottom');
-					return true;
 				}
 			}
 
@@ -110,16 +94,66 @@ async function scrollMenuToRevealLogout(driver) {
 		`);
 
 		await new Promise(r => setTimeout(r, scrolled ? 1000 : 500));
-		console.log(scrolled ? "✅ Menu scrolled to reveal logout" : "ℹ️ No scrolling needed or possible");
+		if (scrolled) {
+			console.log("✅ Menu scrolled to reveal logout");
+		}
 	} catch (e) {
 		console.log(`⚠️ Menu scroll error: ${e.message}`);
 	}
 }
 
 /**
- * Unified logout for all roles
+ * Unified login for all roles
+ *
  * @param {WebDriver} driver - Selenium WebDriver instance
  * @param {string} role - 'learner', 'educator', or 'curator'
+ * @param {string} account - Email address for login
+ * @param {string} password - Password (defaults to DEFAULT_PASSWORD)
+ * @returns {Promise<void>}
+ */
+export async function performLogin(driver, role, account, password = DEFAULT_PASSWORD) {
+	console.log(`🔐 Logging in as ${role}: ${account}`);
+
+	// Wait for and fill username field
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 15000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+	await emailField.sendKeys(account);
+
+	// Wait for and fill password field
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
+	await passwordField.sendKeys(password);
+
+	// Wait for and click sign in button
+	const signInButton = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
+
+	await waitFor.smartClick(driver, signInButton);
+
+	// Wait for login to complete
+	await waitFor.loginComplete(driver, role, 20000);
+	console.log(`✅ Logged in as ${role}`);
+
+	// Dismiss any overlays
+	await dismissOverlays(driver);
+
+	// Wait for page to stabilize
+	await waitFor.networkIdle(driver, 1000, 5000);
+}
+
+/**
+ * Unified logout for all roles
+ *
+ * @param {WebDriver} driver - Selenium WebDriver instance
+ * @param {string} role - 'learner', 'educator', or 'curator' (affects timing)
+ * @returns {Promise<void>}
  */
 export async function performLogout(driver, role = 'learner') {
 	console.log(`🔄 Starting ${role} logout...`);
@@ -149,7 +183,7 @@ export async function performLogout(driver, role = 'learner') {
 				menuOpened = true;
 				break;
 			} catch (e) {
-				console.log(`⚠️ Menu open failed (attempt ${attempt}): ${e.message}`);
+				console.log(`⚠️ Menu open attempt ${attempt} failed: ${e.message}`);
 				if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
 			}
 		}
@@ -169,26 +203,23 @@ export async function performLogout(driver, role = 'learner') {
 		let logoutClicked = false;
 		for (let attempt = 1; attempt <= 3; attempt++) {
 			try {
-				// Find all logout buttons (there might be multiple in DOM)
 				const logoutButtons = await driver.findElements(By.xpath("//button[@aria-label='LOGOUT']"));
 
 				if (logoutButtons.length === 0) {
 					throw new Error("No logout button found in DOM");
 				}
 
-				console.log(`📍 Found ${logoutButtons.length} logout button(s) in DOM`);
+				console.log(`📍 Found ${logoutButtons.length} logout button(s)`);
 
-				// Try to make the button and its parents visible
+				// Try each button until one works
 				let clickSucceeded = false;
 				for (let i = 0; i < logoutButtons.length; i++) {
 					const logoutBtn = logoutButtons[i];
 
 					try {
-						// Force visibility on the button and all parent elements
+						// Force visibility on button and parents
 						await driver.executeScript(`
 							const button = arguments[0];
-
-							// Make button and all parents visible
 							let element = button;
 							while (element) {
 								if (element.style) {
@@ -197,37 +228,20 @@ export async function performLogout(driver, role = 'learner') {
 									element.style.display = 'block';
 								}
 								element = element.parentElement;
-								// Stop at body or after 10 levels
 								if (!element || element.tagName === 'BODY' || element === document.body) break;
 							}
-
-							// Scroll into view
 							button.scrollIntoView({block: 'center', inline: 'center'});
-
-							// Ensure clickable
 							button.style.pointerEvents = 'auto';
 							button.style.zIndex = '99999';
-
-							console.log('Forced button visibility');
 						`, logoutBtn);
 
 						await new Promise(r => setTimeout(r, 500));
 
-						// Check if now visible
-						const isVisible = await logoutBtn.isDisplayed();
-						console.log(`   Button ${i+1}: visible=${isVisible} (after forcing)`);
-
-						// Try to click regardless
-						try {
-							await driver.executeScript("arguments[0].click();", logoutBtn);
-							console.log(`✅ Logout clicked (JS, button ${i+1})`);
-							clickSucceeded = true;
-							break;
-						} catch (clickErr) {
-							console.log(`   Button ${i+1} click error: ${clickErr.message}`);
-							continue;
-						}
-
+						// Try to click
+						await driver.executeScript("arguments[0].click();", logoutBtn);
+						console.log(`✅ Logout clicked (button ${i+1})`);
+						clickSucceeded = true;
+						break;
 					} catch (btnErr) {
 						console.log(`   Button ${i+1} failed: ${btnErr.message}`);
 						continue;
@@ -244,7 +258,6 @@ export async function performLogout(driver, role = 'learner') {
 			} catch (e) {
 				console.log(`⚠️ Logout click attempt ${attempt} failed: ${e.message}`);
 				if (attempt < 3) {
-					// Try scrolling again
 					await scrollMenuToRevealLogout(driver);
 					await new Promise(r => setTimeout(r, 1000));
 				}
@@ -274,13 +287,10 @@ export async function performLogout(driver, role = 'learner') {
 	} catch (error) {
 		console.log(`⚠️ Logout failed: ${error.message}`);
 		console.log("⚠️ Non-critical - test will continue");
-
-		// Debug info
-		try {
-			const url = await driver.getCurrentUrl();
-			console.log(`⚠️ Current URL: ${url}`);
-		} catch (e) {
-			// Ignore
-		}
 	}
 }
+
+/**
+ * Export dismissOverlays for use in workflows that need it separately
+ */
+export { dismissOverlays };

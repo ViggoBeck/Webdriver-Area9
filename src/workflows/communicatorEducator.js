@@ -5,7 +5,7 @@ import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
-import { performLogout } from "../utils/logout.js";
+import { performLogout } from "../utils/auth.js";
 
 export async function communicatorEducator(driver) {
 	// Use direct communicator URL during login

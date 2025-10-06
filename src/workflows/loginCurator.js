@@ -1,21 +1,21 @@
-// loginCurator.js - Using Smart Wait Utilities
+// loginCurator.js - Using Smart Wait Utilities & Unified Auth
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
-import { performLogout } from "../utils/logout.js";
 
 export async function loginCurator(driver) {
 	await driver.get("https://br.uat.sg.rhapsode.com/curator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
-	// Wait for username field with smart waiting - no more hardcoded 4s delay
+	const assignedAccount = getAccountForTest("Login Curator");
+
+	// Wait for username field
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
 		timeout: 15000,
 		visible: true,
 		errorPrefix: 'Username field'
 	});
-
-	const assignedAccount = getAccountForTest("Login Curator");
 	await emailField.sendKeys(assignedAccount);
 
 	// Wait for password field
@@ -25,7 +25,7 @@ export async function loginCurator(driver) {
 	});
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-	// Wait for sign in button to be clickable
+	// Wait for sign in button
 	const signInButton = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
 		clickable: true,
 		errorPrefix: 'Sign in button'
@@ -46,7 +46,7 @@ export async function loginCurator(driver) {
 	const seconds = (end - start) / 1000;
 	console.log("⏱ Login Curator tog:", seconds, "sekunder");
 
-	// --- LOGOUT ---
+	// --- LOGOUT (now using unified auth) ---
 	await performLogout(driver, 'curator');
 
 	return seconds;

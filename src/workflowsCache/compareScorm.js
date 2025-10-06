@@ -1,8 +1,8 @@
 import { By, until } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { buildLearnerUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
+import { DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { dismissLearnerOverlay, performLearnerLogout } from "../utils/learner-utils.js";
+import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { logResult } from "../utils/log.js";
 
 // Single SCORM card click measurement (assumes already on dashboard)
@@ -68,7 +68,7 @@ export async function compareScorm(driver) {
 
 	// === ONE-TIME SETUP ===
 	console.log("🌐 Navigating to learner URL...");
-	await driver.get(buildLearnerUrl());
+	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 	await new Promise(resolve => setTimeout(resolve, 3000));
 
 	// Login once
@@ -106,7 +106,7 @@ export async function compareScorm(driver) {
 	console.log("✅ Dashboard loaded");
 
 	// Dismiss overlays once
-	await dismissLearnerOverlay(driver);
+	await dismissOverlays(driver);
 
 	// === COLD/WARM COMPARISON ===
 
@@ -130,7 +130,7 @@ export async function compareScorm(driver) {
 		console.log("✅ Back to Dashboard button clicked");
 	} catch (e) {
 		console.log("⚠️ Back to Dashboard button not found, using fallback navigation...");
-		await driver.get(buildLearnerUrl());
+		await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 	}
 
 	// Wait for dashboard to load
@@ -149,7 +149,7 @@ export async function compareScorm(driver) {
 	logResult("Open SCORM (warm)", warm);
 
 	// === CLEANUP ===
-	await performLearnerLogout(driver);
+	await performLogout(driver, 'learner');
 
 	// === SUMMARY ===
 	const diff = cold - warm;
