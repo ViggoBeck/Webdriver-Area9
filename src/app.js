@@ -273,7 +273,7 @@ const command = args[0];
 
 // Parse options
 const options = {
-	visible: args.includes('--visible') || args.includes('-v'),
+	visible: !args.includes('--headless') && !args.includes('-h'),  // Default to visible, unless --headless
 	slowMode: args.includes('--slow') || args.includes('-s')
 };
 

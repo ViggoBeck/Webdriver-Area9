@@ -28,7 +28,7 @@ export const selectorsFor = {
 	locators: SelectorBuilder.createLocatorArray.bind(SelectorBuilder)
 };
 
-export async function createDriver(visible = false, slowMode = false) {
+export async function createDriver(visible = true, slowMode = false) {
 	const options = new chrome.Options();
 
 	// Use 'none' page load strategy for ARM Mac + Chrome 141 compatibility
