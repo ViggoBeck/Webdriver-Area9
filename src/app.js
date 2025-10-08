@@ -192,6 +192,11 @@ const LEARNER_TESTS = [
 
 const ALL_TESTS = WORKING_TESTS;
 
+// Experimental/Disabled tests (can still be run individually)
+const EXPERIMENTAL_TESTS = [
+	{ name: "Open Review", func: openReview }
+];
+
 // Cache comparison tests (cold vs warm in same session)
 const CACHE_TESTS = [
 	{ name: "Login Learner Cache", func: compareLoginLearner },
@@ -332,14 +337,17 @@ switch (command) {
 			ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
 			console.log("\nCache Tests:");
 			CACHE_TESTS.forEach(t => console.log(`  - ${t.name}`));
+			console.log("\nExperimental Tests:");
+			EXPERIMENTAL_TESTS.forEach(t => console.log(`  - ${t.name} (⚠️  under testing)`));
 			break;
 		}
 
 		const lowerTestName = testName.toLowerCase();
 
-		// Try exact matches first (both regular and cache)
+		// Try exact matches first (regular, cache, and experimental)
 		let exactTest = ALL_TESTS.find(t => t.name.toLowerCase() === lowerTestName);
 		let exactCacheTest = CACHE_TESTS.find(t => t.name.toLowerCase() === lowerTestName);
+		let exactExperimentalTest = EXPERIMENTAL_TESTS.find(t => t.name.toLowerCase() === lowerTestName);
 
 		if (exactTest) {
 			console.log(`🎯 Found exact match: ${exactTest.name}`);
@@ -353,7 +361,13 @@ switch (command) {
 			break;
 		}
 
-		// Try partial matches - prefer regular tests over cache tests
+		if (exactExperimentalTest) {
+			console.log(`🎯 Found experimental test: ${exactExperimentalTest.name} ⚠️`);
+			runTests([exactExperimentalTest], `Single Test: ${exactExperimentalTest.name}`, options);
+			break;
+		}
+
+		// Try partial matches - prefer regular tests over cache/experimental
 		const test = ALL_TESTS.find(t => t.name.toLowerCase().includes(lowerTestName));
 		if (test) {
 			console.log(`🔍 Found regular test match: ${test.name}`);
@@ -369,12 +383,22 @@ switch (command) {
 			break;
 		}
 
+		// Check experimental tests as final fallback
+		const experimentalTest = EXPERIMENTAL_TESTS.find(t => t.name.toLowerCase().includes(lowerTestName));
+		if (experimentalTest) {
+			console.log(`🔍 Found experimental test match: ${experimentalTest.name} ⚠️`);
+			runTests([experimentalTest], `Single Test: ${experimentalTest.name}`, options);
+			break;
+		}
+
 		// No matches found
 		logger.error(`❌ Test not found: "${testName}". Available tests:`);
 		console.log("\nRegular Tests:");
 		ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
 		console.log("\nCache Tests:");
 		CACHE_TESTS.forEach(t => console.log(`  - ${t.name}`));
+		console.log("\nExperimental Tests:");
+		EXPERIMENTAL_TESTS.forEach(t => console.log(`  - ${t.name} (⚠️  under testing)`));
 		break;
 
 	default:
@@ -423,6 +447,9 @@ ${LEARNER_TESTS.map(t => `  - ${t.name} (with logout)`).join('\n')}
 
 Cache Comparison Tests (8 total - Review Cache disabled):
 ${CACHE_TESTS.map(t => `  - ${t.name} (same session)`).join('\n')}
+
+Experimental Tests (under development - use with caution):
+${EXPERIMENTAL_TESTS.map(t => `  - ${t.name} ⚠️`).join('\n')}
 
 🔐 Account Management:
 Each test uses a unique account to prevent conflicts and enable parallel testing.

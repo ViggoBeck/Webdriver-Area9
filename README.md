@@ -1,249 +1,231 @@
 # Area9 Performance Test Suite
 
-Automated performance testing for Area9 learning platform with configurable logging and robust element handling.
+Automated performance testing for Area9 Rhapsode™ learning platform with precise timing measurements and robust error handling.
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
+# 1. Install dependencies
 npm install
+
+# 2. Configure environment
 cp .env.example .env
-# Edit .env: DEFAULT_PASSWORD=your_password
-npm start              # Run normal workflows
+# Edit .env and set: DEFAULT_PASSWORD=your_password
+
+# 3. Run tests
+npm start              # Run all normal workflows
 npm run cache          # Run cache comparison tests
 ```
 
-## Key Features ✨
+## 📋 Available Tests
 
-- **Configurable Logging** - Control verbosity with `LOG_LEVEL` (silent/error/warn/info/debug/verbose)
-- **Robust Element Handling** - Automatic overlay dismissal and click retries
-- **Smart Waits** - Progressive timeouts (2s → 5s → 15s) instead of hardcoded delays
-- **Network Idle Detection** - Waits for actual page readiness, not arbitrary timeouts
-- **Cache Comparison** - Measure cold vs warm performance
-- **CI/CD Ready** - Headless mode for automated testing
+### Normal Workflows (15 tests)
 
-## Configuration
+```bash
+npm start                     # Run all (headless)
+npm run workflows-visible     # Run with browser visible
+```
 
-Edit `.env`:
+**Login Tests (3):**
+- Login Learner
+- Login Educator
+- Login Curator
+
+**Communicator (2):**
+- Communicator Learner
+- Communicator Educator
+
+**Content Navigation (5):**
+- Open SCORM
+- Open Video Probe
+- Open Course Catalog
+- Open Review
+- Page Load
+
+**Analytics (2):**
+- Open Unique Users Report (Curator)
+- Open Project Team Activity (Curator)
+
+**Class Management (3):**
+- Open Class
+- Create Class
+- Delete Class
+
+### Cache Comparison Tests (9 tests)
+
+Measures cold vs warm cache performance:
+
+```bash
+npm run cache                 # Run all cache tests (headless)
+npm run cache-visible         # Run with browser visible
+```
+
+## 🎯 Running Specific Tests
+
+```bash
+# Run a single test
+node src/app.js single "login learner"
+node src/app.js single "open course catalog"
+
+# Run with browser visible for debugging
+node src/app.js single "login learner" --visible
+```
+
+## 📊 Results
+
+Results are automatically saved to CSV files in the `results/` folder:
+
+```
+results/
+├── results-normal.csv              # Normal workflow timings
+├── results-cold.csv                # First run (cold cache)
+├── results-warm.csv                # Second run (warm cache)
+└── results-cache-comparison.csv    # Cold vs warm analysis
+```
+
+Clear previous results:
+```bash
+npm run clear-results
+```
+
+## 🔧 Configuration
+
+Edit `.env` to customize behavior:
+
 ```env
+# Required
 DEFAULT_PASSWORD=your_password
 
-# Logging (optional - defaults to 'info')
+# Optional
 LOG_LEVEL=info     # silent|error|warn|info|debug|verbose
 ```
 
 ### Log Levels
 
-| Level | Output | Use Case |
-|-------|--------|----------|
-| `silent` | Minimal | CI/CD, automated reports |
-| `error` | Errors only | Production monitoring |
-| `warn` | Errors + warnings | Normal with alerts |
-| **`info`** | **Key events (default)** | **Daily development** ⭐ |
-| `debug` | Detailed steps | Troubleshooting |
-| `verbose` | Everything | Deep debugging |
+| Level | What You See | When to Use |
+|-------|-------------|-------------|
+| **`info`** | **Key events only (default)** ⭐ | **Normal usage** |
+| `debug` | Detailed step-by-step | Troubleshooting failures |
+| `verbose` | Everything + network activity | Deep debugging |
+| `silent` | Minimal output | CI/CD or when generating reports |
 
-## Available Tests
+## 👥 Test Accounts
 
-### Normal Workflows (16 tests)
+Each test uses a dedicated account from a pool to avoid conflicts. The mapping is defined in `src/utils/accounts.js`:
 
-```bash
-npm start                     # Run all normal workflows
-npm run workflows-visible     # Run with browser visible
-```
-
-**Authentication (3):**
-- Login Learner (~3-4s)
-- Login Educator (~3-4s)
-- Login Curator (~3-4s)
-
-**Content (5):**
-- Open SCORM (~4.1s)
-- Open Video Probe (~2s)
-- Open Course Catalog (~1s)
-- Open Review (~4s)
-- Page Load (~10.6s)
-
-**Communication (2):**
-- Communicator Learner (~7s)
-- Communicator Educator (~10s)
-
-**Analytics (2):**
-- Open Unique Users Report (~4.9s)
-- Open Project Team Activity (~3.4s)
-
-**Class Management (4):**
-- Open Class (~1s)
-- Create Class (~4.9s)
-- Delete Class (~1.8s)
-
-### Cache Comparison Tests (9 tests)
-
-Tests run twice (cold then warm) to measure caching benefits:
-
-```bash
-npm run cache                 # Run all cache tests
-npm run cache-visible         # Run with browser visible
-```
-
-- Page Load Cache (60-75% improvement)
-- Login Learner Cache
-- Login Educator Cache
-- Login Curator Cache
-- SCORM Cache
-- Video Probe Cache
-- Course Catalog Cache
-- Open Class Cache
-- Open Review Cache
-
-## Running Specific Tests
-
-```bash
-# Normal workflows
-node src/app.js single "login learner"
-node src/app.js single "open course catalog"
-node src/app.js single "create class"
-
-# Cache tests
-node src/app.js single "login learner cache"
-node src/app.js single "scorm cache"
-
-# With visual mode
-node src/app.js single "login learner" --visible
-```
-
-## Results
-
-Results are saved to organized CSV files:
-
-```
-results/
-├── results-normal.csv              # Baseline performance
-├── results-cold.csv                # Cold cache results
-├── results-warm.csv                # Warm cache results
-└── results-cache-comparison.csv    # Cold vs warm analysis
-```
-
-Clear results:
-```bash
-npm run clear-results
-```
-
-## Test Accounts
-
-Tests use dedicated accounts to avoid conflicts:
-
-- **Learner**: A9-106821@area9.dk to A9-106830@area9.dk
-- **Educator**: A9-106816@area9.dk to A9-106820@area9.dk
-- **Curator**: A9-106810@area9.dk to A9-106815@area9.dk
-
-View assignments:
+**View current account assignments:**
 ```bash
 npm run show-accounts
 ```
 
-## Troubleshooting
+**Account pools:**
+- **Learner**: A9-106821@area9.dk to A9-106830@area9.dk (10 accounts)
+- **Educator**: A9-106816@area9.dk to A9-106820@area9.dk (5 accounts)
+- **Curator**: A9-106810@area9.dk to A9-106815@area9.dk (6 accounts)
 
-### Tests are too verbose
-```bash
-# Edit .env
-LOG_LEVEL=info    # Recommended (default)
+## 🆘 Troubleshooting
+
+### ⚠️ "User Already Logged In" Error
+
+If a test fails because the user is already logged in to the platform:
+
+1. **Find the account** - Check which account the test was trying to use:
+	 - Look at the error message for the account email
+	 - Or check `src/utils/accounts.js` to see the account mapping for that test
+
+2. **Manually logout** - Open a browser and:
+	 - Navigate to the Area9 UAT environment
+	 - Login with that specific account (password in `.env`)
+	 - Click the menu and logout properly
+
+3. **Restart the test** - Run the test again:
+	 ```bash
+	 node src/app.js single "test name"
+	 ```
+
+**Example:**
+```
+Error: Login Learner failed - user already logged in
+Account used: A9-106821@area9.dk
+
+Solution:
+1. Open browser → Login as A9-106821@area9.dk
+2. Click menu → Logout
+3. Run: node src/app.js single "login learner"
 ```
 
-### Need to debug a failure
-```bash
-# Edit .env for more detail
-LOG_LEVEL=debug
+### Tests Failing with Click Errors
 
-# Run with browser visible
+The suite handles most click issues automatically with:
+- Overlay dismissal
+- JavaScript click fallback
+- Element visibility forcing
+- Progressive retry logic
+
+If you still see errors, try running with visible mode to see what's happening:
+```bash
 node src/app.js single "test name" --visible
 ```
 
-### Element not clickable errors
-These are now handled automatically with:
-- Automatic overlay dismissal
-- JavaScript click fallback
-- Element visibility forcing
-- Retry logic with progressive delays
+### Need More Details for Debugging
 
-### Configuration error
-Check `.env` has `DEFAULT_PASSWORD` set.
-
-### Browser issues
-Update Chrome or restart terminal.
-
-## Architecture
-
-### Core Utilities
-- **`logger.js`** - Configurable logging with 6 levels
-- **`smart-wait.js`** - Progressive timeout escalation (2s → 5s → 15s)
-- **`network-wait.js`** - Network idle detection and monitoring
-- **`app-ready.js`** - Application-specific ready state detection
-- **`auth.js`** - Login/logout with overlay handling
-- **`driver.js`** - WebDriver setup with unified API
-
-### Workflow Structure
-```javascript
-import { logger } from "../utils/logger.js";
-import { waitFor, selectorsFor } from "../utils/driver.js";
-
-export async function workflowName(driver) {
-	logger.info("🌐 Starting workflow...");
-
-	const element = await waitFor.element(driver,
-		selectorsFor.area9.usernameField(), {
-		timeout: 15000,
-		visible: true
-	});
-
-	logger.info("⏱ Workflow took: 2.345s");
-}
-```
-
-## Recent Updates
-
-**v2.0 (Oct 8, 2025):**
-- ✅ Added configurable logger with 6 levels
-- ✅ Fixed Course Catalog menu button issues
-- ✅ Fixed SCORM/Video Probe click interception
-- ✅ Updated all 30+ workflows to use logger
-- ✅ ~80% reduction in log output at default level
-
-See `CHANGELOG.md` for complete history.
-
-## CI/CD Integration
-
-The suite is ready for CI/CD with minimal output:
-
+Increase log level temporarily:
 ```bash
 # In .env
-LOG_LEVEL=silent
+LOG_LEVEL=debug
 
-# Run tests
-npm test
+# Run the failing test
+node src/app.js single "test name" --visible
 ```
 
-All tests are reliable and handle:
-- Dynamic overlays
-- Network timing variations
-- Element stability issues
-- Stale element references
+### Configuration Error on Startup
 
-## Documentation
+Make sure your `.env` file exists and has `DEFAULT_PASSWORD` set:
+```bash
+# Check if .env exists
+cat .env
 
-- **`readme.md`** (this file) - Complete documentation
-- **`QUICK_START.md`** - Quick reference guide
-- **`CHANGELOG.md`** - Version history
-- **`ALL_UPDATES_COMPLETE.md`** - Recent updates summary
+# If not, create it
+cp .env.example .env
+# Then edit and set DEFAULT_PASSWORD
+```
 
-## Status
+## 📁 Project Structure
 
-**Current:** ✅ Ready for production use
-**Tests:** 25 total (16 normal + 9 cache)
-**Success Rate:** ~100% with retry logic
-**Browser:** Chrome 141+ (auto-managed)
+```
+VSC_A9/WD/
+├── src/
+│   ├── workflows/          # Normal workflow tests
+│   ├── workflowsCache/     # Cache comparison tests
+│   ├── utils/
+│   │   ├── accounts.js     # 👈 Test account mappings
+│   │   ├── logger.js       # Logging system
+│   │   ├── driver.js       # WebDriver utilities
+│   │   └── auth.js         # Login/logout helpers
+│   └── app.js              # Main test runner
+├── results/                # Test results (CSV files)
+├── .env                    # Configuration (you create this)
+└── package.json            # Dependencies
+```
 
-⚠️ **Tests interact with live UAT environment** - run manually for validation/benchmarking.
+## 🎯 Timing Specifications
 
----
+All workflows measure precise timings:
 
-For quick reference, see `QUICK_START.md`.
+- **Login workflows**: Timer starts at login button click, stops when dashboard is fully interactive
+- **Navigation workflows**: Timer starts at navigation action (click tab/card), stops when content is visible
+- **Class operations**: Timer starts at action confirmation, stops when operation completes
+
+## 🎓 For Developers
+
+### Running in Development
+
+```bash
+# Run all tests with visible browser for observation
+npm run workflows-visible
+
+# Run specific test with debugging output
+LOG_LEVEL=debug node src/app.js single "test name" --visible
+```
+
+
