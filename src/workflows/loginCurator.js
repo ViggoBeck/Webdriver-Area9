@@ -5,9 +5,10 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { logger } from "../utils/logger.js";
 import { performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { buildCuratorUrl } from "../utils/config.js";
 
 export async function loginCurator(driver) {
-	await driver.get("https://br.uat.sg.rhapsode.com/curator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildCuratorUrl());
 
 	const assignedAccount = getAccountForTest("Login Curator");
 

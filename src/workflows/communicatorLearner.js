@@ -7,11 +7,12 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 export async function communicatorLearner(driver) {
 	// Use direct communicator URL during login
 	logger.info("🌐 Navigating to learner communicator URL...");
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication&folderIds=[Inbox]");
+	await driver.get(buildLearnerUrl("communication&folderIds=[Inbox]"));
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {

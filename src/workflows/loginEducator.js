@@ -5,9 +5,10 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { logger } from "../utils/logger.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 import { performLogout } from "../utils/auth.js";
+import { buildEducatorUrl } from "../utils/config.js";
 
 export async function loginEducator(driver) {
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildEducatorUrl());
 
 	// Wait for username field with smart waiting - no more hardcoded 4s delay
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {

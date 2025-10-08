@@ -7,11 +7,12 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 export async function openScorm(driver) {
 	// --- LOGIN (not timed) ---
 	logger.info("🌐 Navigating to learner URL for SCORM test...");
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Debug: Check current state
 	try {
@@ -51,7 +52,7 @@ export async function openScorm(driver) {
 		} else {
 			// Force navigation back to login
 			logger.info("🔄 Forcing fresh navigation to login page...");
-			await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+			await driver.get(buildLearnerUrl());
 
 			const emailField = await waitFor.element(driver, By.css('input[name="username"]'), {
 				timeout: 10000,

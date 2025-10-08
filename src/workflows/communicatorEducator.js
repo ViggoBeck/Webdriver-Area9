@@ -7,11 +7,12 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 import { performLogout } from "../utils/auth.js";
+import { buildEducatorUrl } from "../utils/config.js";
 
 export async function communicatorEducator(driver) {
 	// Use direct communicator URL during login
 	logger.info("🌐 Navigating to educator communicator URL...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
+	await driver.get(buildEducatorUrl("communication"));
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
@@ -99,7 +100,7 @@ export async function communicatorEducator(driver) {
 	// --- LOGOUT ---
 	// Navigate back to main educator page before logout (communication page doesn't have proper menu)
 	logger.info("🔄 Navigating back to main page for logout...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildEducatorUrl());
 	await new Promise(r => setTimeout(r, 2000)); // Wait for page to load
 
 	await performLogout(driver, 'educator');

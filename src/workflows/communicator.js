@@ -7,6 +7,7 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { buildLearnerUrl, buildEducatorUrl } from "../utils/config.js";
 
 async function waitForCommunicatorUI(driver, timeout = 15000) {
 	logger.info("⏳ Waiting for Communicator UI to load...");
@@ -38,7 +39,7 @@ async function waitForCommunicatorUI(driver, timeout = 15000) {
 export async function communicatorLearner(driver) {
 	// Use direct communicator URL during login
 	logger.info("🌐 Navigating to learner communicator URL...");
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication&folderIds=[Inbox]");
+	await driver.get(buildLearnerUrl("communication&folderIds=[Inbox]"));
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
@@ -89,7 +90,7 @@ export async function communicatorLearner(driver) {
 export async function communicatorEducator(driver) {
 	// Use direct communicator URL during login
 	logger.info("🌐 Navigating to educator communicator URL...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
+	await driver.get(buildEducatorUrl("communication"));
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {

@@ -7,11 +7,12 @@ import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 export async function openCourseCatalog(driver) {
 	// --- LOGIN (not timed) ---
 	logger.info("🌐 Navigating to learner URL for Course Catalog test...");
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Smart login with automatic detection and completion
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {

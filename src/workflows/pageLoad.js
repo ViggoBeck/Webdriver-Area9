@@ -4,6 +4,7 @@
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { logger } from "../utils/logger.js";
 import { waitFor } from "../utils/driver.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 export async function pageLoad(driver) {
 	logger.info("🚀 Starting Page Load test (cold measurement)...");
@@ -13,7 +14,7 @@ export async function pageLoad(driver) {
 	const startTime = Date.now();
 
 	// Navigate to page
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Wait for initial page load event
 	await driver.executeScript(`
