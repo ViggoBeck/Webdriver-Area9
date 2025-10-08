@@ -28,6 +28,7 @@ coverage/
 # --------------------------------------------------
 # Test results and logs
 # --------------------------------------------------
+results/
 results.csv
 src/results.csv
 *.log
