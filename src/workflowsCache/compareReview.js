@@ -3,6 +3,7 @@ import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { logResult } from "../utils/log.js";
+import { buildEducatorUrl } from "../utils/config.js";
 
 // Single Review tab click measurement (assumes already on class content page)
 async function clickReviewsTab(driver) {
@@ -82,7 +83,7 @@ export async function compareReview(driver) {
 
 	// === ONE-TIME SETUP ===
 	logger.info("🌐 Logging in as educator...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildEducatorUrl());
 	await new Promise(resolve => setTimeout(resolve, 4000));
 
 	// Login once (same as openReview.js)
@@ -116,7 +117,7 @@ export async function compareReview(driver) {
 
 	// Navigate to the class content page (same as openReview.js)
 	logger.info("🏫 Navigating to class content page...");
-	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#home&t=classes/class&class=785&t=classcontent");
+	await driver.get(buildEducatorUrl("home&t=classes/class&class=785&t=classcontent"));
 	await new Promise(resolve => setTimeout(resolve, 3000));
 	logger.info("✅ Class content page loaded");
 
@@ -143,7 +144,7 @@ export async function compareReview(driver) {
 	} catch (e) {
 		logger.info("⚠️ Class content tab not found, using fallback navigation...");
 		// Fallback: refresh the page to class content
-		await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#home&t=classes/class&class=785&t=classcontent");
+		await driver.get(buildEducatorUrl("home&t=classes/class&class=785&t=classcontent"));
 		await new Promise(resolve => setTimeout(resolve, 2000));
 	}
 

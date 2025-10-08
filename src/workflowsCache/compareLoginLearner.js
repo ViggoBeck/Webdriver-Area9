@@ -7,6 +7,7 @@ import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js"
 import { logColdResult, logWarmResult, logCacheComparison } from "../utils/log.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 import { performLogout, dismissOverlays } from "../utils/auth.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 /**
  * Clear session (cookies, storage) between cold and warm runs
@@ -48,7 +49,7 @@ async function performSingleLogin(driver, loginType) {
 	// --- PAGE LOAD TIMING ---
 	logger.info(`🌐 Measuring ${loginType} page load...`);
 	const pageLoadStart = Date.now();
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Wait for page load and username field
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {

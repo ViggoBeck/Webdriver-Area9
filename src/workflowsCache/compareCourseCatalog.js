@@ -8,6 +8,7 @@ import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { logResult } from "../utils/log.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 import { logger } from "../utils/logger.js";
+import { buildLearnerUrl } from "../utils/config.js";
 
 /** Single Course Catalog access from menu (assumes already on dashboard) */
 async function openCourseCatalogFromMenu(driver) {
@@ -188,7 +189,7 @@ export async function compareCourseCatalog(driver) {
 
 	// === ONE-TIME SETUP - LOGIN ===
 	logger.info("🌐 Navigating to learner URL...");
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Login
 	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
@@ -254,7 +255,7 @@ export async function compareCourseCatalog(driver) {
 		} catch (e) {
 			if (attempt === 3) {
 				logger.warn("⚠️ Menu button failed, using fallback navigation...");
-				await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+				await driver.get(buildLearnerUrl());
 				await waitFor.loginComplete(driver, 'learner', 20000);
 				await dismissOverlays(driver);
 				await waitFor.networkIdle(driver, 1000, 5000);

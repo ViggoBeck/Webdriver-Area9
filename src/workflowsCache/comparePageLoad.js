@@ -1,7 +1,7 @@
 // src/workflowsCache/comparePageLoad.js
 // Cache comparison workflow with smart waits, session management, and retry logic
 
-import { DEFAULT_TIMEOUT } from "../utils/config.js";
+import { DEFAULT_TIMEOUT, buildLearnerUrl } from "../utils/config.js";
 import { logger } from "../utils/logger.js";
 import { logColdResult, logWarmResult, logCacheComparison } from "../utils/log.js";
 import { getAccountForTest } from "../utils/accounts.js";
@@ -46,7 +46,7 @@ async function measurePageLoad(driver, label) {
 
 	// Navigate to page and start timing
 	logger.info(`🚀 Starting ${label} page load timer...`);
-	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
+	await driver.get(buildLearnerUrl());
 
 	// Wait for page to fully load using network idle detection
 	await waitFor.pageLoad(driver, {
