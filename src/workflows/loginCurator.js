@@ -2,6 +2,7 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { logger } from "../utils/logger.js";
 import { performLogout } from "../utils/auth.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
 
@@ -44,7 +45,7 @@ export async function loginCurator(driver) {
 	// STOP TIMER - page is now fully interactive
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
-	console.log("⏱ Login Curator tog:", seconds, "sekunder");
+	logger.info("⏱ Login Curator tog:", seconds, "sekunder");
 
 	// --- LOGOUT (now using unified auth) ---
 	await performLogout(driver, 'curator');

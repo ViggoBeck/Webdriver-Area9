@@ -1,127 +1,124 @@
 // src/workflowsCache/compareLoginEducator.js
-import { By, until } from "selenium-webdriver";
+// Cache comparison workflow with smart waits, session management, and retry logic
+
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
+import { logger } from "../utils/logger.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
-import { buildEducatorUrl, DEFAULT_TIMEOUT } from "../utils/config.js";
+import { buildEducatorUrl } from "../utils/config.js";
 import { logColdResult, logWarmResult, logCacheComparison } from "../utils/log.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout, dismissOverlays } from "../utils/auth.js";
 
-/** Dismiss overlay if present */
-async function dismissOverlay(driver) {
-	try {
-		const gotItCandidates = await driver.findElements(
-			By.xpath("//*[normalize-space(text())='GOT IT']")
-		);
-		for (let btn of gotItCandidates) {
-			if (await btn.isDisplayed()) {
-				console.log("✅ Found GOT IT overlay, dismissing...");
-				await driver.executeScript("arguments[0].click();", btn);
-				await driver.wait(until.stalenessOf(btn), 10000);
-				console.log("✅ Overlay dismissed");
-				break;
-			}
-		}
-	} catch {
-		console.log("ℹ️ No overlay detected");
-	}
-}
-
-/** Logout handling for educator */
-async function performLogoutEducator(driver) {
-	console.log("🔄 Starting educator logout...");
-
-	try {
-		// Open menu
-		const menuBtn = await driver.wait(
-			until.elementLocated(By.xpath("//button[@aria-label='Show Menu']")),
-			DEFAULT_TIMEOUT
-		);
-		await driver.executeScript("arguments[0].click();", menuBtn);
-		console.log("✅ Menu opened");
-		await new Promise(r => setTimeout(r, 1000));
-
-		// Click logout (aria-label or visible text)
-		const logoutBtn = await driver.wait(
-			until.elementLocated(
-				By.xpath("//button[@aria-label='LOGOUT' or contains(translate(., 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'LOGOUT')]")
-			),
-			DEFAULT_TIMEOUT
-		);
-		await driver.executeScript("arguments[0].click();", logoutBtn);
-		console.log("✅ Logout clicked");
-
-		// Verify login form
-		await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-		console.log("✅ Logout successful (login form visible)");
-	} catch (e) {
-		console.log("⚠️ Logout failed, fallback to educator login page");
-		await driver.get(buildEducatorUrl());
-		await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-	}
-}
-
-/** One login attempt with:
- *  - page load (cold/warm)
- *  - login timing
+/**
+ * Clear session (cookies, storage) between cold and warm runs
+ * BUT preserve disk cache for cache comparison
  */
+async function clearSessionPreservingCache(driver) {
+	try {
+		logger.info("🧹 Clearing session (preserving cache)...");
+
+		// Clear cookies only - this resets auth but keeps cache
+		try {
+			await driver.manage().deleteAllCookies();
+		} catch (e) {
+			logger.info("⚠️ Cookie clearing failed:", e.message);
+		}
+
+		// Clear storage
+		try {
+			await driver.executeScript(`
+				try {
+					localStorage.clear();
+					sessionStorage.clear();
+				} catch (e) {}
+			`);
+		} catch (e) {
+			logger.info("⚠️ Storage clearing failed:", e.message);
+		}
+
+		logger.info("✅ Session cleared (cache preserved)");
+	} catch (error) {
+		logger.warn(`⚠️ Session clear error: ${error.message}`);
+	}
+}
+
+/** One login attempt with page load and login timing */
 async function performSingleLogin(driver, loginType) {
-	console.log(`🎯 Performing ${loginType} educator login...`);
+	logger.info(`🎯 Performing ${loginType} educator login...`);
 
 	// --- PAGE LOAD TIMING ---
+	logger.info(`🌐 Measuring ${loginType} page load...`);
 	const pageLoadStart = Date.now();
 	await driver.get(buildEducatorUrl());
-	await new Promise(r => setTimeout(r, 1500)); // let UI render
 
-	const emailField = await driver.wait(
-		until.elementLocated(By.css('input[name="username"]')),
-		DEFAULT_TIMEOUT
-	);
+	// Wait for page load and username field
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 15000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+
 	const pageLoadSeconds = Number(((Date.now() - pageLoadStart) / 1000).toFixed(3));
-	console.log(`⏱ ${loginType} page load took: ${pageLoadSeconds}s`);
+	logger.info(`⏱ ${loginType} page load took: ${pageLoadSeconds}s`);
 
 	// Fill login form
-	await emailField.sendKeys(getAccountForTest("Login Educator"));
-	const passwordField = await driver.findElement(By.css('input[name="password"]'));
+	await emailField.sendKeys(getAccountForTest("Login Educator Cache"));
+
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
 	await passwordField.sendKeys(DEFAULT_PASSWORD);
-	const signInButton = await driver.findElement(By.id("sign_in"));
+
+	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
 
 	// --- LOGIN TIMING ---
+	logger.info(`🚀 Starting ${loginType} login timer...`);
 	const loginStart = Date.now();
-	await signInButton.click();
 
-	const successSelectors = [
-		By.xpath("//*[text()='Dashboard']"),
-		By.xpath("//*[contains(text(), 'Dashboard')]"),
-		By.xpath("//*[contains(text(), 'Welcome')]"),
-		By.xpath("//nav | //header"),
-		By.xpath("//*[contains(@class, 'dashboard')]")
-	];
-
-	let loginSuccess = false;
-	for (const selector of successSelectors) {
+	// Retry click up to 3 times
+	let loginClicked = false;
+	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			await driver.wait(until.elementLocated(selector), 5000);
-			console.log(`✅ ${loginType} educator login success via: ${selector}`);
-			loginSuccess = true;
+			await waitFor.smartClick(driver, signInBtn);
+			loginClicked = true;
 			break;
-		} catch {}
-	}
-
-	if (!loginSuccess) {
-		await new Promise(r => setTimeout(r, 2000));
-		const loginForms = await driver.findElements(By.css('input[name="username"]'));
-		if (loginForms.length === 0) {
-			console.log(`✅ Login form disappeared - ${loginType} educator login successful`);
-			loginSuccess = true;
+		} catch (e) {
+			logger.warn(`⚠️ Login click attempt ${attempt} failed: ${e.message}`);
+			if (attempt < 3) {
+				await waitFor.networkIdle(driver, 500, 3000);
+				// Re-fetch button
+				const retryBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+					clickable: true
+				});
+				signInBtn = retryBtn;
+			} else {
+				throw e;
+			}
 		}
 	}
 
-	if (!loginSuccess) throw new Error(`❌ Could not verify ${loginType} educator login success`);
+	if (!loginClicked) {
+		throw new Error("Could not click sign in button after retries");
+	}
+
+	// Wait for login to complete
+	await waitFor.loginComplete(driver, 'educator', 20000);
 
 	const loginSeconds = Number(((Date.now() - loginStart) / 1000).toFixed(3));
-	console.log(`⏱ ${loginType} login took: ${loginSeconds}s`);
+	logger.info(`⏱ ${loginType} login took: ${loginSeconds}s`);
+	logger.debug(`✅ ${loginType} educator login success detected`);
 
-	// Cleanup
-	await dismissOverlay(driver);
+	// Dismiss overlay if shown
+	await dismissOverlays(driver);
+
+	// Wait for page to stabilize
+	await waitFor.networkIdle(driver, 1000, 5000);
+
+	// Debug helpers
 	await logCurrentState(driver, "Login Educator Cache");
 	await pauseForObservation(driver, `${loginType} educator login completed`, 1);
 
@@ -130,52 +127,53 @@ async function performSingleLogin(driver, loginType) {
 
 /** Main comparison workflow */
 export async function compareLoginEducator(driver) {
-	console.log("🔬 Login Educator Cache Comparison - Cold vs Warm performance");
+	logger.info("🔬 Login Educator Cache Comparison - Cold vs Warm performance");
 
 	// COLD
-	console.log("\n❄️  Login Educator — COLD (no cache)");
+	logger.info("\n❄️  Login Educator — COLD (no cache)");
 	const cold = await performSingleLogin(driver, "COLD");
 	const account = getAccountForTest("Login Educator Cache");
 	logColdResult("Login Educator (page load)", cold.pageLoadSeconds, account);
 	logColdResult("Login Educator (login)", cold.loginSeconds, account);
 
-	// Logout
-	await performLogoutEducator(driver);
+	// Logout and clear session (preserve cache)
+	await performLogout(driver, 'educator');
+	await clearSessionPreservingCache(driver);
 	await new Promise(r => setTimeout(r, 2000));
 
 	// WARM
-	console.log("\n🔥 Login Educator — WARM (cached resources)");
+	logger.info("\n🔥 Login Educator — WARM (cached resources)");
 	const warm = await performSingleLogin(driver, "WARM");
 	logWarmResult("Login Educator (page load)", warm.pageLoadSeconds, account);
 	logWarmResult("Login Educator (login)", warm.loginSeconds, account);
 
 	// Final logout
-	await performLogoutEducator(driver);
+	await performLogout(driver, 'educator');
 
 	// Results summary
-	console.log(`\n📊 Login Educator Cache Comparison Results:`);
+	logger.info(`\n📊 Login Educator Cache Comparison Results:`);
 
 	// Page load
 	const pageDiff = cold.pageLoadSeconds - warm.pageLoadSeconds;
 	const pagePct = (pageDiff / cold.pageLoadSeconds * 100).toFixed(1);
-	console.log(`   🌐 Page load:`);
-	console.log(`      ❄️ Cold: ${cold.pageLoadSeconds.toFixed(3)}s`);
-	console.log(`      🔥 Warm: ${warm.pageLoadSeconds.toFixed(3)}s`);
-	console.log(`      ⚡ Improvement: ${pageDiff.toFixed(3)}s (${pagePct}%)`);
+	logger.always(`   🌐 Page load:`);
+	logger.always(`      ❄️ Cold: ${cold.pageLoadSeconds.toFixed(3)}s`);
+	logger.always(`      🔥 Warm: ${warm.pageLoadSeconds.toFixed(3)}s`);
+	logger.always(`      ⚡ Improvement: ${pageDiff.toFixed(3)}s (${pagePct}%)`);
 
 	// Login
 	const loginDiff = cold.loginSeconds - warm.loginSeconds;
 	const loginPct = (loginDiff / cold.loginSeconds * 100).toFixed(1);
-	console.log(`   🔐 Login:`);
-	console.log(`      ❄️ Cold: ${cold.loginSeconds.toFixed(3)}s`);
-	console.log(`      🔥 Warm: ${warm.loginSeconds.toFixed(3)}s`);
-	console.log(`      ⚡ Difference: ${loginDiff.toFixed(3)}s (${loginPct}%)`);
-	console.log(`      (Expected: little/no cache effect here)`);
+	logger.always(`   🔐 Login:`);
+	logger.always(`      ❄️ Cold: ${cold.loginSeconds.toFixed(3)}s`);
+	logger.always(`      🔥 Warm: ${warm.loginSeconds.toFixed(3)}s`);
+	logger.always(`      ⚡ Difference: ${loginDiff.toFixed(3)}s (${loginPct}%)`);
+	logger.always(`      (Expected: little/no cache effect here)`);
 
-	// Log
+	// Log cache comparison data
 	logCacheComparison("Login Educator (page load)", cold.pageLoadSeconds, warm.pageLoadSeconds, account);
 	logCacheComparison("Login Educator (login)", cold.loginSeconds, warm.loginSeconds, account);
 
-	// Return warm page load
+	// Return warm page load as the key metric
 	return warm.pageLoadSeconds;
 }

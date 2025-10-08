@@ -10,6 +10,20 @@ export const SKIN_PARAM = process.env.SKIN_PARAM || "YZUVwMzYfBDNyEzXnlWcYZUVwMz
 export const DEFAULT_TIMEOUT = parseInt(process.env.DEFAULT_TIMEOUT) || 20000;
 export const BUTTON_LOAD_THRESHOLD = parseInt(process.env.BUTTON_LOAD_THRESHOLD) || 20;
 
+// Log level configuration
+// Available levels: 'silent' | 'error' | 'warn' | 'info' | 'debug' | 'verbose'
+export const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+
+// Log level hierarchy
+export const LOG_LEVELS = {
+	silent: 0,
+	error: 1,
+	warn: 2,
+	info: 3,
+	debug: 4,
+	verbose: 5
+};
+
 // URL builders for different roles
 export function buildLearnerUrl(hash = "") {
 	const url = `${BASE_URL}/learner.html?s=${SKIN_PARAM}`;

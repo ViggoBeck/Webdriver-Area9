@@ -2,6 +2,7 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
@@ -9,7 +10,7 @@ import { performLogout } from "../utils/auth.js";
 
 export async function communicatorEducator(driver) {
 	// Use direct communicator URL during login
-	console.log("🌐 Navigating to educator communicator URL...");
+	logger.info("🌐 Navigating to educator communicator URL...");
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#communication");
 
 	// Smart login with automatic detection and completion
@@ -33,13 +34,13 @@ export async function communicatorEducator(driver) {
 	});
 
 	// START TIMING: Right before clicking login (as per specification)
-	console.log("🚀 Starting timer - clicking login...");
+	logger.info("🚀 Starting timer - clicking login...");
 	const start = Date.now();
 
 	await waitFor.smartClick(driver, signInButton);
 
 	// --- WAIT FOR COMMUNICATOR UI TO LOAD ---
-	console.log("⏳ Waiting for Communicator UI to load...");
+	logger.info("⏳ Waiting for Communicator UI to load...");
 
 	// Don't wait for full network idle - just check for UI elements directly
 	// This is faster and more reliable
@@ -53,7 +54,7 @@ export async function communicatorEducator(driver) {
 			visible: true,
 			errorPrefix: 'Communicator Inbox folder'
 		});
-		console.log("✅ Communicator UI detected (Inbox folder found)");
+		logger.info("✅ Communicator UI detected (Inbox folder found)");
 		communicatorLoaded = true;
 	} catch (error) {
 		// Try next strategy
@@ -67,7 +68,7 @@ export async function communicatorEducator(driver) {
 				visible: true,
 				errorPrefix: 'Communicator MAIL heading'
 			});
-			console.log("✅ Communicator UI detected (MAIL heading found)");
+			logger.info("✅ Communicator UI detected (MAIL heading found)");
 			communicatorLoaded = true;
 		} catch (error) {
 			// Try next strategy
@@ -77,9 +78,9 @@ export async function communicatorEducator(driver) {
 	// Strategy 3: Check URL contains communication
 	if (!communicatorLoaded) {
 		const url = await driver.getCurrentUrl();
-		console.log(`🔍 Current URL: ${url}`);
+		logger.debug(`🔍 Current URL: ${url}`);
 		if (url.includes("communication") || url.includes("#communication")) {
-			console.log("✅ Communicator detected via URL");
+			logger.info("✅ Communicator detected via URL");
 			communicatorLoaded = true;
 		}
 	}
@@ -90,14 +91,14 @@ export async function communicatorEducator(driver) {
 
 	// STOP TIMER
 	const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-	console.log(`⏱ Communicator Educator took: ${seconds}s`);
+	logger.info(`⏱ Communicator Educator took: ${seconds}s`);
 
 	await logCurrentState(driver, "Communicator Educator");
 	await pauseForObservation(driver, "Communicator UI loaded", 2);
 
 	// --- LOGOUT ---
 	// Navigate back to main educator page before logout (communication page doesn't have proper menu)
-	console.log("🔄 Navigating back to main page for logout...");
+	logger.info("🔄 Navigating back to main page for logout...");
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 	await new Promise(r => setTimeout(r, 2000)); // Wait for page to load
 

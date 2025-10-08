@@ -1,5 +1,6 @@
 // Smart Wait Utilities - Intelligent waiting to replace hardcoded delays
 import { By, until } from "selenium-webdriver";
+import { logger } from './logger.js';
 
 export class SmartWait {
 	/**
@@ -26,13 +27,15 @@ export class SmartWait {
 					driver, locator, currentTimeout, { stable, visible, clickable, polling }
 				);
 
-				// Log successful strategy for debugging
-				console.log(`✅ ${errorPrefix} found with ${currentTimeout}ms timeout`);
+				// Only log on final timeout success or if in debug mode
+				if (currentTimeout === timeouts[timeouts.length - 1]) {
+					logger.verbose(`✅ ${errorPrefix} found with ${currentTimeout}ms timeout`);
+				}
 				return element;
 
 			} catch (error) {
 				lastError = error;
-				console.log(`⚠️ ${errorPrefix} not ready with ${currentTimeout}ms timeout, escalating...`);
+				logger.verbose(`⚠️ ${errorPrefix} not ready with ${currentTimeout}ms timeout, escalating...`);
 
 				// Small buffer between escalation attempts
 				await this.sleep(200);
@@ -138,18 +141,18 @@ export class SmartWait {
 
 		for (let i = 0; i < selectors.length; i++) {
 			try {
-				console.log(`🔍 Trying ${errorPrefix} selector ${i + 1}: ${selectors[i]}`);
+				logger.verbose(`🔍 Trying ${errorPrefix} selector ${i + 1}: ${selectors[i]}`);
 				const element = await this.forElement(driver, selectors[i], {
 					...waitOptions,
 					timeout: 3000, // Shorter timeout for individual attempts
 					errorPrefix: `${errorPrefix} (selector ${i + 1})`
 				});
 
-				console.log(`✅ ${errorPrefix} found using selector ${i + 1}`);
+				logger.debug(`✅ ${errorPrefix} found using selector ${i + 1}`);
 				return element;
 
 			} catch (error) {
-				console.log(`❌ ${errorPrefix} selector ${i + 1} failed: ${error.message}`);
+				logger.verbose(`❌ ${errorPrefix} selector ${i + 1} failed: ${error.message}`);
 				if (i === selectors.length - 1) {
 					throw new Error(`${errorPrefix} not found with any selector: ${error.message}`);
 				}
@@ -175,16 +178,16 @@ export class SmartWait {
 		for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
 				await element.click();
-				console.log(`✅ Smart click succeeded (attempt ${attempt})`);
+				logger.verbose(`✅ Smart click succeeded (attempt ${attempt})`);
 				return;
 			} catch (error) {
-				console.log(`⚠️ Click attempt ${attempt} failed: ${error.message}`);
+				logger.verbose(`⚠️ Click attempt ${attempt} failed: ${error.message}`);
 
 				if (attempt === maxAttempts) {
 					if (jsClickFallback) {
-						console.log(`🔄 Falling back to JavaScript click`);
+						logger.debug(`🔄 Falling back to JavaScript click`);
 						await driver.executeScript("arguments[0].click();", element);
-						console.log(`✅ JavaScript click succeeded`);
+						logger.debug(`✅ JavaScript click succeeded`);
 						return;
 					} else {
 						throw error;

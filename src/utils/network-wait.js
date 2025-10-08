@@ -1,5 +1,6 @@
 // Network-Aware Waiting - Detect when application network activity is complete
 import { SmartWait } from './smart-wait.js';
+import { logger } from './logger.js';
 
 export class NetworkWait {
 	/**
@@ -10,7 +11,7 @@ export class NetworkWait {
 		const startTime = Date.now();
 
 		try {
-			console.log(`🌐 Monitoring network activity for ${idleTime}ms idle period...`);
+			logger.verbose(`🌐 Monitoring network activity for ${idleTime}ms idle period...`);
 
 			const result = await driver.executeAsyncScript(`
 				const callback = arguments[arguments.length - 1];
@@ -87,21 +88,21 @@ export class NetworkWait {
 			const elapsed = Date.now() - startTime;
 
 			if (result.success) {
-				console.log(`✅ Network idle achieved after ${elapsed}ms (${result.activeRequests} active, ${result.idleDuration}ms idle)`);
-				if (result.requestHistory.length > 0) {
-					console.log(`📊 Recent requests:`, result.requestHistory.map(r => `${r.type}:${r.url}`));
+				logger.debug(`✅ Network idle achieved after ${elapsed}ms (${result.activeRequests} active, ${result.idleDuration}ms idle)`);
+				if (result.requestHistory.length > 0 && logger.verbose) {
+					logger.verbose(`📊 Recent requests:`, result.requestHistory.map(r => `${r.type}:${r.url}`));
 				}
 				return true;
 			} else {
-				console.log(`⚠️ Network idle timeout after ${elapsed}ms (${result.activeRequests} still active)`);
+				logger.debug(`⚠️ Network idle timeout after ${elapsed}ms (${result.activeRequests} still active)`);
 				if (result.requestHistory.length > 0) {
-					console.log(`📊 Recent requests:`, result.requestHistory.map(r => `${r.type}:${r.url}`));
+					logger.debug(`📊 Recent requests:`, result.requestHistory.map(r => `${r.type}:${r.url}`));
 				}
 				return false;
 			}
 
 		} catch (error) {
-			console.log(`❌ Network monitoring error: ${error.message}`);
+			logger.warn(`❌ Network monitoring error: ${error.message}`);
 			// Fallback to simple time-based wait
 			await SmartWait.sleep(idleTime);
 			return true;
@@ -116,7 +117,7 @@ export class NetworkWait {
 		const startTime = Date.now();
 
 		try {
-			console.log(`🎯 Waiting for specific requests: ${urlPatterns.join(', ')}`);
+			logger.debug(`🎯 Waiting for specific requests: ${urlPatterns.join(', ')}`);
 
 			const result = await driver.executeAsyncScript(`
 				const callback = arguments[arguments.length - 1];
@@ -200,15 +201,15 @@ export class NetworkWait {
 			const elapsed = Date.now() - startTime;
 
 			if (result.success) {
-				console.log(`✅ All target requests completed after ${elapsed}ms`);
+				logger.debug(`✅ All target requests completed after ${elapsed}ms`);
 				return true;
 			} else {
-				console.log(`⚠️ Request timeout after ${elapsed}ms - completed: ${result.completedPatterns.length}/${urlPatterns.length}`);
+				logger.warn(`⚠️ Request timeout after ${elapsed}ms - completed: ${result.completedPatterns.length}/${urlPatterns.length}`);
 				return false;
 			}
 
 		} catch (error) {
-			console.log(`❌ Request monitoring error: ${error.message}`);
+			logger.warn(`❌ Request monitoring error: ${error.message}`);
 			return false;
 		}
 	}
@@ -224,7 +225,7 @@ export class NetworkWait {
 			skipImages = true
 		} = options;
 
-		console.log(`🔄 Waiting for complete page load...`);
+		logger.debug(`🔄 Waiting for complete page load...`);
 
 		// Wait for basic DOM ready
 		await driver.executeScript(`
@@ -260,9 +261,9 @@ export class NetworkWait {
 				`);
 			}, timeout);
 
-			console.log(`✅ All page resources loaded`);
+			logger.debug(`✅ All page resources loaded`);
 		} catch (error) {
-			console.log(`⚠️ Resource loading timeout: ${error.message}`);
+			logger.warn(`⚠️ Resource loading timeout: ${error.message}`);
 		}
 	}
 }

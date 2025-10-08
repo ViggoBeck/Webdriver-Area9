@@ -2,12 +2,13 @@
 // Measures complete page load including all CSS, JS, fonts, images, and XHR requests
 
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
+import { logger } from "../utils/logger.js";
 import { waitFor } from "../utils/driver.js";
 
 export async function pageLoad(driver) {
-	console.log("🚀 Starting Page Load test (cold measurement)...");
-	console.log("🎯 Measuring complete page load including all resources...");
-	console.log("🚀 Starting page load timer...");
+	logger.info("🚀 Starting Page Load test (cold measurement)...");
+	logger.info("🎯 Measuring complete page load including all resources...");
+	logger.info("🚀 Starting page load timer...");
 
 	const startTime = Date.now();
 
@@ -70,32 +71,32 @@ export async function pageLoad(driver) {
 	const totalElapsed = (Date.now() - startTime) / 1000;
 
 	// Display detailed metrics
-	console.log(`\n📊 Page Load Metrics:`);
-	console.log(`⏱ Total Time: ${totalElapsed.toFixed(3)}s`);
+	logger.info(`\n📊 Page Load Metrics:`);
+	logger.info(`⏱ Total Time: ${totalElapsed.toFixed(3)}s`);
 
 	if (metrics.navigation) {
-		console.log(`  📄 DOM Content Loaded: ${(metrics.navigation.domContentLoaded / 1000).toFixed(3)}s`);
-		console.log(`  🎯 Load Event Complete: ${(metrics.navigation.loadComplete / 1000).toFixed(3)}s`);
-		console.log(`  ⚡ DOM Interactive: ${(metrics.navigation.domInteractive / 1000).toFixed(3)}s`);
+		logger.info(`  📄 DOM Content Loaded: ${(metrics.navigation.domContentLoaded / 1000).toFixed(3)}s`);
+		logger.info(`  🎯 Load Event Complete: ${(metrics.navigation.loadComplete / 1000).toFixed(3)}s`);
+		logger.info(`  ⚡ DOM Interactive: ${(metrics.navigation.domInteractive / 1000).toFixed(3)}s`);
 	}
 
 	if (metrics.paint.fcp > 0) {
-		console.log(`  🎨 First Contentful Paint: ${(metrics.paint.fcp / 1000).toFixed(3)}s`);
+		logger.info(`  🎨 First Contentful Paint: ${(metrics.paint.fcp / 1000).toFixed(3)}s`);
 	}
 
-	console.log(`\n📦 Resources Loaded (${metrics.resources.total} total):`);
+	logger.info(`\n📦 Resources Loaded (${metrics.resources.total} total):`);
 	Object.entries(metrics.resources.byType).forEach(([type, stats]) => {
 		const sizeMB = (stats.size / 1024 / 1024).toFixed(2);
 		const avgDuration = (stats.duration / stats.count).toFixed(0);
-		console.log(`  ${type}: ${stats.count} files, ${sizeMB}MB, avg ${avgDuration}ms`);
+		logger.info(`  ${type}: ${stats.count} files, ${sizeMB}MB, avg ${avgDuration}ms`);
 	});
 
-	console.log(`\n💾 Total Transfer Size: ${(metrics.resources.totalTransferSize / 1024 / 1024).toFixed(2)}MB`);
+	logger.info(`\n💾 Total Transfer Size: ${(metrics.resources.totalTransferSize / 1024 / 1024).toFixed(2)}MB`);
 
 	await logCurrentState(driver, "Page Load");
 	await pauseForObservation(driver, "Page load completed", 3);
 
-	console.log("\n✨ Page Load test finished");
+	logger.info("\n✨ Page Load test finished");
 
 	// Return total elapsed time as the metric
 	return Number(totalElapsed.toFixed(3));

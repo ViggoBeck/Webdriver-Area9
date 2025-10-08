@@ -1,150 +1,241 @@
-import { By, until } from "selenium-webdriver";
+// src/workflowsCache/compareScorm.js
+// Cache comparison workflow with smart waits, session management, and retry logic
+
+import { By } from "selenium-webdriver";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
-import { DEFAULT_TIMEOUT } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
 import { logResult } from "../utils/log.js";
+import { waitFor, selectorsFor } from "../utils/driver.js";
+import { logger } from "../utils/logger.js";
 
-// Single SCORM card click measurement (assumes already on dashboard)
+/** Single SCORM card click measurement (assumes already on dashboard) */
 async function clickScormCard(driver) {
-	console.log("🎯 Measuring SCORM card click to load...");
+	logger.info("🎯 Measuring SCORM card click to load...");
 
-	// Find SCORM card
+	// --- FIND SCORM CARD ---
 	const scormCardXPath = `
 		//p[normalize-space()='1 Scorm Benchmark Test']
 		/ancestor::div[contains(@class,'nativeWidget')]
 		//button[@aria-label='1 Scorm' and not(@disabled)]
 	`;
 
-	let scormBtn;
-	for (let attempt = 1; attempt <= 3; attempt++) {
-		try {
-			scormBtn = await driver.wait(until.elementLocated(By.xpath(scormCardXPath)), DEFAULT_TIMEOUT);
-			await driver.wait(until.elementIsVisible(scormBtn), 5000);
-			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", scormBtn);
-			break;
-		} catch {
-			if (attempt === 3) throw new Error("Could not find SCORM card");
-			await new Promise(r => setTimeout(r, 2000));
-		}
+	// --- FIND AND CLICK SCORM CARD WITH AGGRESSIVE STRATEGY ---
+	logger.debug("🎯 Looking for SCORM card with aggressive detection...");
+
+	// Wait for dashboard to fully settle first
+	await waitFor.networkIdle(driver, 2000, 8000);
+	logger.debug("✅ Dashboard settled");
+
+	// Aggressively dismiss any lingering overlays
+	await dismissOverlays(driver);
+
+	// Remove any blocking elements
+	await driver.executeScript(`
+		// Remove common overlay/modal elements
+		const selectors = [
+			'[class*="overlay"]',
+			'[class*="modal"]',
+			'[class*="backdrop"]',
+			'[class*="dimmer"]',
+			'[style*="z-index"]'
+		];
+
+		selectors.forEach(selector => {
+			document.querySelectorAll(selector).forEach(el => {
+				const zIndex = parseInt(window.getComputedStyle(el).zIndex);
+				if (zIndex > 1000) {
+					el.style.display = 'none';
+				}
+			});
+		});
+	`);
+
+	let scormBtn = null;
+
+	// Try to find element
+	try {
+		scormBtn = await waitFor.element(driver, By.xpath(scormCardXPath), {
+			timeout: 8000,
+			visible: true,
+			stable: true,
+			errorPrefix: 'SCORM Benchmark Test card'
+		});
+		logger.info("✅ Found SCORM Benchmark Test card");
+	} catch (e) {
+		logger.error("❌ SCORM card not found on dashboard");
+		throw new Error("SCORM Benchmark Test card not visible on dashboard");
 	}
 
-	// START TIMER: Right before clicking SCORM card
+	// Scroll into view and force visibility/clickability
+	await driver.executeScript(`
+		const element = arguments[0];
+		element.scrollIntoView({block:'center', inline:'center'});
+
+		// Force visibility and clickability on element and ancestors
+		let el = element;
+		while (el && el !== document.body) {
+			if (el.style) {
+				el.style.visibility = 'visible';
+				el.style.opacity = '1';
+				el.style.pointerEvents = 'auto';
+				el.style.zIndex = '99999';
+			}
+			el = el.parentElement;
+		}
+	`, scormBtn);
+
+	// Longer settle time after scroll
+	await new Promise(r => setTimeout(r, 1500));
+	logger.debug("✅ Scrolled and settled");
+
+	// --- START TIMER: Before clicking ---
 	const start = Date.now();
 
-	// Click SCORM card
+	// --- CLICK SCORM CARD WITH JAVASCRIPT (MOST RELIABLE) ---
+	logger.debug("🖱️ Clicking SCORM card...");
+
 	try {
-		await scormBtn.click();
-	} catch {
+		// Use JavaScript click directly for most reliability
 		await driver.executeScript("arguments[0].click();", scormBtn);
+		logger.info(`✅ SCORM card clicked successfully`);
+	} catch (e) {
+		logger.error(`❌ SCORM card click failed: ${e.message}`);
+		throw new Error(`SCORM card click failed: ${e.message}`);
 	}
 
-	// Wait for SCORM content to load
-	let scormLoaded = false;
+	// --- WAIT FOR SCORM CONTENT TO LOAD ---
+	logger.info("⏳ Waiting for SCORM content to load...");
+
+	// Wait for URL change first (navigation to SCORM content)
 	try {
-		await driver.wait(until.elementLocated(By.css("iframe, embed, object")), DEFAULT_TIMEOUT);
-		scormLoaded = true;
-	} catch {}
-
-	if (!scormLoaded) {
-		const url = await driver.getCurrentUrl();
-		if (url.includes("card=")) scormLoaded = true;
+		await driver.wait(async () => {
+			const url = await driver.getCurrentUrl();
+			return url.includes('card=') || url.includes('scorm');
+		}, 8000);
+		logger.debug("✅ URL changed - SCORM navigation detected");
+	} catch (e) {
+		logger.debug("⚠️ URL didn't change, checking for iframe...");
 	}
 
-	if (!scormLoaded) throw new Error("SCORM did not load in time");
+	// Wait for network to settle after navigation
+	await waitFor.networkIdle(driver, 1500, 8000);
 
-	// STOP TIMER
+	// Wait for SCORM iframe to be present and loaded
+	try {
+		const iframes = await driver.findElements(By.css('iframe'));
+		if (iframes.length > 0) {
+			logger.debug(`✅ Found ${iframes.length} iframe(s)`);
+
+			// Wait for iframe to be actually loaded
+			await driver.wait(async () => {
+				try {
+					const readyState = await driver.executeScript(`
+						const iframes = document.querySelectorAll('iframe');
+						if (iframes.length === 0) return false;
+
+						// Check if at least one iframe has loaded content
+						for (const iframe of iframes) {
+							try {
+								if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+									return true;
+								}
+							} catch (e) {
+								// Cross-origin iframe - assume loaded
+								return true;
+							}
+						}
+						return false;
+					`);
+					return readyState;
+				} catch (e) {
+					return true; // Assume loaded if script fails
+				}
+			}, 5000);
+			logger.debug("✅ Iframe detection inconclusive");
+		}
+	} catch (e) {
+		logger.debug("⚠️ Iframe check failed, continuing...");
+	}
+
+	// Wait for SCORM-specific ready state
+	await waitFor.scormReady(driver, 15000);
+
+	// --- STOP TIMER ---
 	const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-	console.log(`⏱ SCORM click-to-load: ${seconds}s`);
+	logger.info(`⏱ SCORM click-to-load: ${seconds}s`);
 
-	await logCurrentState(driver, "SCORM Click");
-	await pauseForObservation(driver, "SCORM content loaded", 1);
+	await logCurrentState(driver, "SCORM Content");
+	await pauseForObservation(driver, "SCORM loaded", 1);
 
 	return seconds;
 }
 
 export async function compareScorm(driver) {
-	console.log("🔬 SCORM Cache Comparison - Cold vs Warm in same session");
+	logger.info("🔬 SCORM Cache Comparison - Cold vs Warm in same session");
 
-	// === ONE-TIME SETUP ===
-	console.log("🌐 Navigating to learner URL...");
+	// === ONE-TIME SETUP - LOGIN ===
+	logger.info("🌐 Navigating to learner URL...");
 	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
-	await new Promise(resolve => setTimeout(resolve, 3000));
 
-	// Login once
-	console.log("🔐 Performing one-time login...");
-	let needsLogin = false;
-	try {
-		const emailField = await driver.wait(until.elementLocated(By.css('input[name="username"]')), DEFAULT_TIMEOUT);
-		await emailField.sendKeys(getAccountForTest("Open SCORM"));
-		needsLogin = true;
-	} catch (error) {
-		// Check if already logged in
-		const dashboardElements = await driver.findElements(By.xpath("//*[text()='LEARN' or text()='TO-DO']"));
-		if (dashboardElements.length > 0) {
-			console.log("✅ Already logged in, skipping login process...");
-		} else {
-			throw new Error("Could not find login form or dashboard");
-		}
-	}
+	// Login
+	const emailField = await waitFor.element(driver, selectorsFor.area9.usernameField(), {
+		timeout: 20000,
+		visible: true,
+		errorPrefix: 'Username field'
+	});
+	await emailField.sendKeys(getAccountForTest("Open SCORM Cache"));
 
-	if (needsLogin) {
-		const passwordField = await driver.findElement(By.css('input[name="password"]'));
-		await passwordField.sendKeys(DEFAULT_PASSWORD);
+	const passwordField = await waitFor.element(driver, selectorsFor.area9.passwordField(), {
+		visible: true,
+		errorPrefix: 'Password field'
+	});
+	await passwordField.sendKeys(DEFAULT_PASSWORD);
 
-		const signInBtn = await driver.findElement(By.id("sign_in"));
-		await signInBtn.click();
-		await driver.wait(until.stalenessOf(signInBtn), DEFAULT_TIMEOUT).catch(() => {});
+	const signInBtn = await waitFor.element(driver, selectorsFor.area9.signInButton(), {
+		clickable: true,
+		errorPrefix: 'Sign in button'
+	});
+	await waitFor.smartClick(driver, signInBtn);
 
-		// Wait for dashboard
-		await driver.wait(
-			until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
-			DEFAULT_TIMEOUT
-		);
-	}
+	// Wait for login to complete
+	await waitFor.loginComplete(driver, 'learner', 30000);
+	logger.info("✅ Dashboard loaded");
 
-	console.log("✅ Dashboard loaded");
-
-	// Dismiss overlays once
-	await dismissOverlays(driver);
+	// Wait for dashboard to fully stabilize
+	await waitFor.networkIdle(driver, 1000, 5000);
 
 	// === COLD/WARM COMPARISON ===
 
 	// COLD: First SCORM click
-	console.log("\n❄️  SCORM — COLD (first click)");
+	logger.info("\n❄️  SCORM — COLD (first click)");
 	const cold = await clickScormCard(driver);
 	logResult("Open SCORM (cold)", cold);
 
-	// Click "Back to Dashboard" button for warm test
-	console.log("🔄 Clicking Back to Dashboard button...");
-
-	let backBtn;
+	// Return to Dashboard
+	logger.info("🔄 Clicking Back to Dashboard button...");
 	try {
-		// Find the Back to Dashboard button
-		backBtn = await driver.wait(
-			until.elementLocated(By.css('button[aria-label="Back to Dashboard"]')),
-			10000
-		);
-		await driver.wait(until.elementIsVisible(backBtn), 5000);
-		await driver.executeScript("arguments[0].click();", backBtn);
-		console.log("✅ Back to Dashboard button clicked");
+		const backBtn = await waitFor.element(driver, By.xpath("//button[contains(text(),'Back to Dashboard')]"), {
+			timeout: 15000,
+			visible: true,
+			clickable: true,
+			errorPrefix: 'Back to Dashboard button'
+		});
+		await waitFor.smartClick(driver, backBtn, { jsClickFallback: true });
 	} catch (e) {
-		console.log("⚠️ Back to Dashboard button not found, using fallback navigation...");
+		logger.warn("⚠️ Back to Dashboard button not found, using fallback navigation...");
 		await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 	}
 
 	// Wait for dashboard to load
-	await driver.wait(
-		until.elementLocated(By.xpath("//*[text()='LEARN' or text()='TO-DO']")),
-		DEFAULT_TIMEOUT
-	);
-	console.log("✅ Dashboard loaded for warm test");
+	await waitFor.loginComplete(driver, 'learner', 20000);
+	logger.info("✅ Dashboard loaded for warm test");
 
-	// Small pause to let page settle
-	await new Promise(r => setTimeout(r, 2000));
+	// Wait for page to stabilize
+	await waitFor.networkIdle(driver, 1000, 5000);
 
 	// WARM: Second SCORM click (benefits from cache)
-	console.log("\n🔥 SCORM — WARM (second click, cached)");
+	logger.info("\n🔥 SCORM — WARM (second click, cached)");
 	const warm = await clickScormCard(driver);
 	logResult("Open SCORM (warm)", warm);
 
@@ -154,11 +245,11 @@ export async function compareScorm(driver) {
 	// === SUMMARY ===
 	const diff = cold - warm;
 	const pct = (diff / cold * 100).toFixed(1);
-	console.log(`\n📊 SCORM Cache Comparison Results:`);
-	console.log(`   ❄️  Cold (first): ${cold.toFixed(3)}s`);
-	console.log(`   🔥 Warm (cached): ${warm.toFixed(3)}s`);
-	console.log(`   ⚡ Difference: ${diff.toFixed(3)}s (${pct}% improvement)`);
+	logger.always(`\n📊 SCORM Cache Comparison Results:`);
+	logger.always(`   ❄️  Cold (first): ${cold.toFixed(3)}s`);
+	logger.always(`   🔥 Warm (cached): ${warm.toFixed(3)}s`);
+	logger.always(`   ⚡ Difference: ${diff.toFixed(3)}s (${pct}% improvement)`);
 
-	// Return the warm time as the primary result (since cache tests are about optimization)
+	// Return the warm time as the primary result
 	return warm;
 }

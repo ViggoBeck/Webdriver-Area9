@@ -2,14 +2,16 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
+import { performLogout } from "../utils/auth.js";
 
 export async function openReview(driver) {
 	// --- LOGIN (not timed) ---
-	console.log("🌐 Navigating to educator URL for Review test...");
+	logger.info("🌐 Navigating to educator URL for Review test...");
 	await driver.get(buildEducatorUrl());
 
 	// Smart login with automatic detection and completion
@@ -36,23 +38,23 @@ export async function openReview(driver) {
 
 	// Wait for educator login to complete
 	await waitFor.loginComplete(driver, 'educator', 20000);
-	console.log("✅ Login completed, dashboard loaded");
+	logger.info("✅ Login completed, dashboard loaded");
 
 	// --- NAVIGATE TO CLASS CONTENT PAGE ---
-	console.log("🔄 Navigating to class content page...");
+	logger.info("🔄 Navigating to class content page...");
 	await driver.get("https://br.uat.sg.rhapsode.com/educator.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc#home&t=classes/class&class=785&t=classcontent");
 
 	// Wait for page to stabilize after complex navigation
 	await waitFor.networkIdle(driver, 1000, 8000);
 
 	// --- START TIMER + CLICK REVIEWS TAB ---
-	console.log("🔍 Looking for Reviews tab...");
+	logger.info("🔍 Looking for Reviews tab...");
 
 	// Retry logic for Reviews tab (like openScorm/openVideoProbe/openCourseCatalog)
 	let clicked = false;
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			console.log(`🔍 Attempt ${attempt}: Finding Reviews tab...`);
+			logger.debug(`🔍 Attempt ${attempt}: Finding Reviews tab...`);
 
 			// Find element fresh each time - only check visible and stable (NOT clickable)
 			const reviewsTab = await waitFor.element(driver, By.css('button[aria-label="reviews"]'), {
@@ -65,9 +67,9 @@ export async function openReview(driver) {
 
 			// Scroll to center
 			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", reviewsTab);
-			console.log(`✅ Scrolled to Reviews tab`);
+			logger.info(`✅ Scrolled to Reviews tab`);
 
-			console.log(`🔍 Attempt ${attempt}: Clicking Reviews tab...`);
+			logger.debug(`🔍 Attempt ${attempt}: Clicking Reviews tab...`);
 
 			// --- START TIMER RIGHT BEFORE CLICK ---
 			const start = Date.now();
@@ -75,17 +77,17 @@ export async function openReview(driver) {
 			// Simple click with JS fallback
 			try {
 				await reviewsTab.click();
-				console.log(`✅ Regular click succeeded`);
+				logger.debug(`✅`);
 			} catch (clickError) {
-				console.log(`⚠️ Regular click failed, using JS click`);
+				logger.warn(`⚠️ Regular click failed, using JS click`);
 				await driver.executeScript("arguments[0].click();", reviewsTab);
-				console.log(`✅ JS click succeeded`);
+				logger.debug(`✅`);
 			}
 
 			clicked = true;
 
 			// --- WAIT FOR REVIEWS CONTENT TO LOAD ---
-			console.log("⏳ Waiting for reviews content to load...");
+			logger.info("⏳ Waiting for reviews content to load...");
 
 			// Wait for network activity to settle
 			await waitFor.networkIdle(driver, 1000, 8000);
@@ -100,7 +102,7 @@ export async function openReview(driver) {
 					visible: true,
 					errorPrefix: 'Reviews heading "ACTIVITY: Needs Review"'
 				});
-				console.log("✅ Reviews content detected (ACTIVITY: Needs Review heading)");
+				logger.info("✅ Reviews content detected (ACTIVITY: Needs Review heading)");
 				reviewsLoaded = true;
 			} catch (error) {
 				// Try next strategy
@@ -114,7 +116,7 @@ export async function openReview(driver) {
 						visible: true,
 						errorPrefix: 'Reviews table'
 					});
-					console.log("✅ Reviews table detected");
+					logger.info("✅ Reviews table detected");
 					reviewsLoaded = true;
 				} catch (error) {
 					// Try next strategy
@@ -129,11 +131,11 @@ export async function openReview(driver) {
 						visible: true,
 						errorPrefix: 'Selected Reviews tab'
 					});
-					console.log("✅ Reviews tab is selected");
+					logger.info("✅ Reviews tab is selected");
 					reviewsLoaded = true;
 				} catch (error) {
 					// Assume success if tab was clicked
-					console.log("✅ Reviews tab was clicked - assuming content loaded");
+					logger.info("✅ Reviews tab was clicked - assuming content loaded");
 					reviewsLoaded = true;
 				}
 			}
@@ -144,16 +146,19 @@ export async function openReview(driver) {
 
 			// --- STOP TIMER ---
 			const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-			console.log(`⏱ Open Review took: ${seconds}s`);
+			logger.info(`⏱ Open Review took: ${seconds}s`);
 
 			await logCurrentState(driver, "Open Review");
 			await pauseForObservation(driver, "Reviews tab opened - you can see the review content", 3);
+
+			// --- LOGOUT ---
+			await performLogout(driver, 'educator');
 
 			return seconds;
 
 		} catch (error) {
 			if (error.message.includes('stale element')) {
-				console.log(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
+				logger.warn(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
 				await waitFor.networkIdle(driver, 500, 3000);
 				continue;
 			}
@@ -162,7 +167,7 @@ export async function openReview(driver) {
 				throw new Error(`❌ Failed to click Reviews tab after ${attempt} attempts: ${error.message}`);
 			}
 
-			console.log(`⚠️ Attempt ${attempt} failed: ${error.message}`);
+			logger.warn(`⚠️ Attempt ${attempt} failed: ${error.message}`);
 			await waitFor.networkIdle(driver, 1000, 3000);
 		}
 	}

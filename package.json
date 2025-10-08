@@ -18,7 +18,7 @@
 		"cache-visible": "node src/app.js cache --visible",
 		"create": "node src/app.js single create --visible",
 		"delete": "node src/app.js single delete --visible",
-		"clear-results": "> results.csv"
+		"clear-results": "bash clear-results.sh"
 	},
 	"keywords": [
 		"selenium",

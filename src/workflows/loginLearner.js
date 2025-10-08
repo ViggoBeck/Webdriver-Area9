@@ -2,6 +2,7 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { waitFor, selectorsFor } from "../utils/driver.js";
@@ -38,20 +39,20 @@ export async function loginLearner(driver) {
 	await waitFor.loginComplete(driver, 'learner');
 
 	// Wait for navigation to be fully interactive - part of measurement
-	console.log("⏳ Waiting for dashboard to be fully interactive...");
+	logger.info("⏳ Waiting for dashboard to be fully interactive...");
 	await waitFor.networkIdle(driver, 1000, 5000);
 
 	// --- STOP TIMER: Dashboard is fully interactive ---
 	const end = Date.now();
 	const seconds = (end - start) / 1000;
-	console.log(`⏱ Login Learner took: ${seconds.toFixed(3)}s (to interactive)`);
+	logger.info(`⏱ Login Learner took: ${seconds.toFixed(3)}s (to interactive)`);
 
 	// Dismiss overlay after timing
 	await dismissOverlay(driver);
 
 	// Extra stabilization time for learner dashboard before logout
 	await new Promise(resolve => setTimeout(resolve, 2000));
-	console.log("✅ Dashboard ready for logout");
+	logger.info("✅ Dashboard ready for logout");
 
 	// Debug snapshot
 	await logCurrentState(driver, "Login Learner");
@@ -61,7 +62,7 @@ export async function loginLearner(driver) {
 	await performLogout(driver);
 
 	const totalSeconds = ((Date.now() - totalStart) / 1000).toFixed(2);
-	console.log(`✅ Login Learner completed in ${seconds.toFixed(3)}s (measured) | ${totalSeconds}s total incl. cleanup`);
+	logger.info(`✅ Login Learner completed in ${seconds.toFixed(3)}s (measured) | ${totalSeconds}s total incl. cleanup`);
 
 	return seconds;
 }
@@ -77,7 +78,7 @@ async function dismissOverlay(driver) {
 			errorPrefix: 'Got It overlay button'
 		});
 
-		console.log("✅ Found GOT IT overlay, dismissing...");
+		logger.info("✅ Found GOT IT overlay, dismissing...");
 		await waitFor.smartClick(driver, gotItButton);
 
 		// Wait for overlay to actually disappear
@@ -96,15 +97,15 @@ async function dismissOverlay(driver) {
 			return true;
 		}, 5000);
 
-		console.log("✅ Overlay dismissed successfully");
+		logger.info("✅ Overlay dismissed successfully");
 	} catch (error) {
-		console.log("ℹ️ No overlay detected (this is normal)");
+		logger.info("ℹ️ No overlay detected (this is normal)");
 	}
 }
 
 // --- LOGOUT HANDLING - using smart waits ---
 async function performLogout(driver) {
-	console.log("🔄 Starting logout...");
+	logger.info("🔄 Starting logout...");
 
 	// Wait for menu button to be ready - with reduced stability requirement
 	const menuBtn = await waitFor.element(driver, selectorsFor.area9.showMenuButton(), {
@@ -130,7 +131,7 @@ async function performLogout(driver) {
 
 	// Use JavaScript click to bypass obstruction issues
 	await driver.executeScript("arguments[0].click();", menuBtn);
-	console.log("✅ Menu opened (via JS click)");
+	logger.info("✅ Menu opened (via JS click)");
 
 	// Wait for logout button to appear
 	const logoutBtn = await waitFor.element(driver, selectorsFor.area9.logoutButton(), {
@@ -143,7 +144,7 @@ async function performLogout(driver) {
 
 	// Use JavaScript click for logout as well
 	await driver.executeScript("arguments[0].click();", logoutBtn);
-	console.log("✅ Logout clicked (via JS click)");
+	logger.info("✅ Logout clicked (via JS click)");
 
 	// Verify logout success using smart wait
 	try {
@@ -152,13 +153,13 @@ async function performLogout(driver) {
 			visible: true,
 			errorPrefix: 'Login form after logout'
 		});
-		console.log("✅ Logout successful (login form visible)");
+		logger.info("✅ Logout successful (login form visible)");
 	} catch (error) {
 		const url = await driver.getCurrentUrl();
 		if (url.includes("login") || url.includes("signin")) {
-			console.log("✅ Logout successful (redirected to login page)");
+			logger.info("✅ Logout successful (redirected to login page)");
 		} else {
-			console.log("⚠️ Logout may have completed but not verified");
+			logger.info("⚠️ Logout may have completed but not verified");
 		}
 	}
 }

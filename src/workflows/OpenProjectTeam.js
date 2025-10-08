@@ -2,6 +2,7 @@
 // Uses simple waits and JS clicks to avoid timing issues
 
 import { By, until } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildCuratorUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
@@ -10,7 +11,7 @@ import { performLogout } from "../utils/auth.js";
 
 export async function openProjectTeamActivity(driver) {
 	// --- LOGIN (not timed) ---
-	console.log("🌐 Navigating to curator URL for Project Team Activity...");
+	logger.info("🌐 Navigating to curator URL for Project Team Activity...");
 	await driver.get(buildCuratorUrl());
 
 	// Smart login with automatic detection and completion
@@ -40,10 +41,10 @@ export async function openProjectTeamActivity(driver) {
 
 	// Wait for curator login to complete
 	await waitFor.loginComplete(driver, 'curator', 20000);
-	console.log("✅ Login completed, dashboard loaded");
+	logger.info("✅ Login completed, dashboard loaded");
 
 	// --- OPEN MENU / ANALYTICS ---
-	console.log("📂 Opening menu for Analytics access...");
+	logger.info("📂 Opening menu for Analytics access...");
 
 	// Try to find Analytics button (might already be visible if menu is open)
 	let analyticsBtn;
@@ -54,7 +55,7 @@ export async function openProjectTeamActivity(driver) {
 			5000
 		);
 		await driver.executeScript("arguments[0].click();", menuBtn);
-		console.log("✅ Menu opened");
+		logger.info("✅ Menu opened");
 
 		// Wait for menu animation to complete
 		await new Promise(resolve => setTimeout(resolve, 300));
@@ -66,7 +67,7 @@ export async function openProjectTeamActivity(driver) {
 		);
 	} catch (error) {
 		// Menu might already be open, try to find Analytics directly
-		console.log("⚠️ Menu button not found, checking if Analytics is already visible...");
+		logger.info("⚠️ Menu button not found, checking if Analytics is already visible...");
 		analyticsBtn = await driver.wait(
 			until.elementLocated(By.xpath("//button[@aria-label='Analytics']")),
 			5000
@@ -76,10 +77,10 @@ export async function openProjectTeamActivity(driver) {
 	// Scroll and click Analytics button (always use JS click to avoid interception)
 	await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", analyticsBtn);
 	await driver.executeScript("arguments[0].click();", analyticsBtn);
-	console.log("✅ Analytics section opened");
+	logger.info("✅ Analytics section opened");
 
 	// --- LOCATE AND CLICK PROJECT TEAM ACTIVITY CARD ---
-	console.log("🔍 Looking for Project Team Activity card...");
+	logger.info("🔍 Looking for Project Team Activity card...");
 
 	// Use specific selector to find PROJECT TEAM ACTIVITY card (not UNIQUE USERS)
 	const projectTeamCard = await driver.wait(
@@ -94,36 +95,36 @@ export async function openProjectTeamActivity(driver) {
 
 	// --- START TIMER + CLICK ---
 	const start = Date.now();
-	console.log("⏱️ Starting timer and clicking Project Team Activity card...");
+	logger.info("⏱️ Starting timer and clicking Project Team Activity card...");
 
 	try {
 		await projectTeamCard.click();
-		console.log("✅ Regular click succeeded");
+		logger.info("✅ Regular click succeeded");
 	} catch (clickError) {
-		console.log("⚠️ Regular click failed, using JS click");
+		logger.info("⚠️ Regular click failed, using JS click");
 		await driver.executeScript("arguments[0].click();", projectTeamCard);
-		console.log("✅ JS click succeeded");
+		logger.info("✅ JS click succeeded");
 	}
 
 	// --- WAIT FOR REPORT TO LOAD ---
-	console.log("⏳ Waiting for Project Team Activity report to load...");
+	logger.info("⏳ Waiting for Project Team Activity report to load...");
 
 	// Wait for network idle (report data loading)
 	await waitFor.networkIdle(driver, 1000, 10000);
 
 	// Verify report loaded via URL
 	const url = await driver.getCurrentUrl();
-	console.log(`📍 Current URL: ${url}`);
+	logger.info(`📍 Current URL: ${url}`);
 
 	if (url.includes('reports') || url.includes('dashboard') || url.includes('project')) {
-		console.log("✅ Report detected via URL");
+		logger.info("✅ Report detected via URL");
 	} else {
 		throw new Error("❌ Project Team Activity Report did not load - URL check failed");
 	}
 
 	// --- STOP TIMER ---
 	const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
-	console.log(`⏱ Project Team Activity load took: ${seconds}s`);
+	logger.info(`⏱ Project Team Activity load took: ${seconds}s`);
 
 	await logCurrentState(driver, "Open Project Team Activity");
 	await pauseForObservation(driver, "Project Team Activity content");

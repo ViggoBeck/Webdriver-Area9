@@ -2,6 +2,7 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By, until } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { buildEducatorUrl } from "../utils/config.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
@@ -9,7 +10,7 @@ import { waitFor, selectorsFor } from "../utils/driver.js";
 import { performLogout } from "../utils/auth.js";
 
 export async function openClass(driver) {
-	console.log("🚀 Starting Open Class test...");
+	logger.info("🚀 Starting Open Class test...");
 
 	// --- LOGIN AS EDUCATOR (not timed) ---
 	await driver.get(buildEducatorUrl());
@@ -35,7 +36,7 @@ export async function openClass(driver) {
 
 	// Wait for login to complete with intelligent detection
 	await waitFor.loginComplete(driver, 'educator', 20000);
-	console.log("✅ Logged in as Educator");
+	logger.info("✅ Logged in as Educator");
 
 	// --- DISMISS OVERLAY IF PRESENT ---
 	try {
@@ -45,13 +46,13 @@ export async function openClass(driver) {
 			errorPrefix: 'Got It overlay button'
 		});
 		await waitFor.smartClick(driver, gotItButton);
-		console.log("✅ Overlay dismissed");
+		logger.info("✅ Overlay dismissed");
 	} catch (error) {
-		console.log("ℹ️ No overlay to dismiss");
+		logger.info("ℹ️ No overlay to dismiss");
 	}
 
 	// --- LOCATE "Benchmark Test 1 Do not touch" CLASS ---
-	console.log("🔍 Looking for 'Benchmark Test 1 Do not touch' class...");
+	logger.info("🔍 Looking for 'Benchmark Test 1 Do not touch' class...");
 
 	// Single robust selector - no more fallback chains
 	const classElement = await waitFor.element(driver, selectorsFor.area9.classRow('Benchmark Test 1 Do not touch'), {
@@ -62,24 +63,24 @@ export async function openClass(driver) {
 		errorPrefix: 'Benchmark Test 1 class'
 	});
 
-	console.log("✅ Found 'Benchmark Test 1 Do not touch' class");
+	logger.info("✅ Found 'Benchmark Test 1 Do not touch' class");
 
 	// --- START TIMER + CLICK CLASS ---
-	console.log("🚀 Starting timer - clicking class...");
+	logger.info("🚀 Starting timer - clicking class...");
 	const start = Date.now();
 
 	await waitFor.smartClick(driver, classElement);
-	console.log("✅ Clicked 'Benchmark Test 1 Do not touch' class");
+	logger.info("✅ Clicked 'Benchmark Test 1 Do not touch' class");
 
 	// --- WAIT FOR CLASS CONTENT TO LOAD ---
-	console.log("⏳ Waiting for class content to fully load...");
+	logger.info("⏳ Waiting for class content to fully load...");
 
 	// Application-specific completion detection
 	await waitFor.classContent(driver, 15000);
 
 	// --- STOP TIMER ---
 	const seconds = Number(((Date.now() - start) / 1000).toFixed(2));
-	console.log(`⏱ Class open took: ${seconds}s`);
+	logger.info(`⏱ Class open took: ${seconds}s`);
 
 	await logCurrentState(driver, "Open Class");
 	await pauseForObservation(driver, "Class opened - viewing class content", 3);
@@ -87,6 +88,6 @@ export async function openClass(driver) {
 	// --- LOGOUT ---
 	await performLogout(driver, 'educator');
 
-	console.log("✨ Open Class test finished");
+	logger.info("✨ Open Class test finished");
 	return seconds;
 }

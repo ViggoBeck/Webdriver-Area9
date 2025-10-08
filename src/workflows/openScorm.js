@@ -2,6 +2,7 @@
 // Eliminates timing dependencies, race conditions, and the need for --slow mode
 
 import { By, until } from "selenium-webdriver";
+import { logger } from "../utils/logger.js";
 import { getAccountForTest, DEFAULT_PASSWORD } from "../utils/accounts.js";
 import { pauseForObservation, logCurrentState } from "../utils/debug-helpers.js";
 import { dismissOverlays, performLogout } from "../utils/auth.js";
@@ -9,21 +10,21 @@ import { waitFor, selectorsFor } from "../utils/driver.js";
 
 export async function openScorm(driver) {
 	// --- LOGIN (not timed) ---
-	console.log("🌐 Navigating to learner URL for SCORM test...");
+	logger.info("🌐 Navigating to learner URL for SCORM test...");
 	await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 	// Debug: Check current state
 	try {
 		const currentUrl = await driver.getCurrentUrl();
 		const pageTitle = await driver.getTitle();
-		console.log(`📍 Current URL: ${currentUrl}`);
-		console.log(`📄 Page title: ${pageTitle}`);
+		logger.info(`📍 Current URL: ${currentUrl}`);
+		logger.info(`📄 Page title: ${pageTitle}`);
 	} catch (e) {
-		console.log("⚠️ Could not get page info");
+		logger.info("⚠️ Could not get page info");
 	}
 
 	// Look for login form with better error handling
-	console.log("🔍 Looking for login form...");
+	logger.info("🔍 Looking for login form...");
 	let needsLogin = false;
 	try {
 		const emailField = await waitFor.element(driver, By.css('input[name="username"]'), {
@@ -31,25 +32,25 @@ export async function openScorm(driver) {
 			visible: true,
 			errorPrefix: 'Username field'
 		});
-		console.log("✅ Login form found, proceeding with login...");
+		logger.info("✅ Login form found, proceeding with login...");
 		await emailField.sendKeys(getAccountForTest("Open SCORM"));
 		needsLogin = true;
 	} catch (error) {
 		// Enhanced error handling - check if we're already logged in
-		console.log("⚠️ Login form not found, checking if already logged in...");
+		logger.info("⚠️ Login form not found, checking if already logged in...");
 
 		const loginForms = await driver.findElements(By.css('input[name="username"]'));
 		const dashboardElements = await driver.findElements(By.xpath("//*[text()='LEARN' or text()='TO-DO']"));
 
-		console.log(`📊 Login forms found: ${loginForms.length}`);
-		console.log(`📊 Dashboard elements found: ${dashboardElements.length}`);
+		logger.debug(`📊 Login forms found: ${loginForms.length}`);
+		logger.debug(`📊 Dashboard elements found: ${dashboardElements.length}`);
 
 		if (dashboardElements.length > 0) {
-			console.log("✅ Already logged in, skipping login process...");
+			logger.info("✅ Already logged in, skipping login process...");
 			// Already on dashboard, continue with SCORM card clicking
 		} else {
 			// Force navigation back to login
-			console.log("🔄 Forcing fresh navigation to login page...");
+			logger.info("🔄 Forcing fresh navigation to login page...");
 			await driver.get("https://br.uat.sg.rhapsode.com/learner.html?s=YZUVwMzYfBDNyEzXnlWcYZUVwMzYnlWc");
 
 			const emailField = await waitFor.element(driver, By.css('input[name="username"]'), {
@@ -80,13 +81,13 @@ export async function openScorm(driver) {
 				visible: true,
 				errorPrefix: 'Dashboard indicator'
 			});
-			console.log("✅ Login completed, dashboard loaded");
+			logger.info("✅ Login completed, dashboard loaded");
 		}
 	}
 
 	// Complete login if we found the login form initially
 	if (needsLogin) {
-		console.log("🔐 Completing login process...");
+		logger.info("🔐 Completing login process...");
 		const passwordField = await waitFor.element(driver, By.css('input[name="password"]'), {
 			visible: true,
 			errorPrefix: 'Password field'
@@ -107,20 +108,20 @@ export async function openScorm(driver) {
 			visible: true,
 			errorPrefix: 'Dashboard indicator'
 		});
-		console.log("✅ Login completed, dashboard loaded");
+		logger.info("✅ Login completed, dashboard loaded");
 	}
 
 	// Ensure we're on dashboard (whether we just logged in or were already logged in)
-	console.log("🔍 Verifying dashboard is loaded...");
+	logger.info("🔍 Verifying dashboard is loaded...");
 	try {
 		await waitFor.element(driver, By.xpath("//*[text()='LEARN' or text()='TO-DO']"), {
 			timeout: 10000,
 			visible: true,
 			errorPrefix: 'Dashboard verification'
 		});
-		console.log("✅ Dashboard confirmed loaded");
+		logger.info("✅ Dashboard confirmed loaded");
 	} catch (e) {
-		console.log("⚠️ Dashboard verification failed, but continuing...");
+		logger.info("⚠️ Dashboard verification failed, but continuing...");
 	}
 
 	// --- DISMISS OVERLAY USING SHARED FUNCTION ---
@@ -128,10 +129,10 @@ export async function openScorm(driver) {
 
 	// Wait for page to stabilize after overlay dismissal
 	await waitFor.networkIdle(driver, 1000, 5000);
-	console.log("✅ Page stabilized after overlay dismissal");
+	logger.info("✅ Page stabilized after overlay dismissal");
 
 	// --- SCORM CARD ---
-	console.log("🔍 Looking for SCORM Benchmark Test card...");
+	logger.info("🔍 Looking for SCORM Benchmark Test card...");
 	const scormCardXPath = `
 		//p[normalize-space()='1 Scorm Benchmark Test']
 		/ancestor::div[contains(@class,'nativeWidget')]
@@ -142,7 +143,7 @@ export async function openScorm(driver) {
 	let clicked = false;
 	for (let attempt = 1; attempt <= 3; attempt++) {
 		try {
-			console.log(`🔍 Attempt ${attempt}: Finding SCORM card button...`);
+			logger.debug(`🔍 Attempt ${attempt}: Finding SCORM card button...`);
 
 			// Find element fresh each time - only check visible and stable (not clickable)
 			const scormBtn = await waitFor.element(driver, By.xpath(scormCardXPath), {
@@ -155,9 +156,9 @@ export async function openScorm(driver) {
 
 			// Scroll to center (like original code)
 			await driver.executeScript("arguments[0].scrollIntoView({block:'center'});", scormBtn);
-			console.log(`✅ Scrolled to SCORM card`);
+			logger.info(`✅ Scrolled to SCORM card`);
 
-			console.log(`🔍 Attempt ${attempt}: Clicking SCORM card...`);
+			logger.debug(`🔍 Attempt ${attempt}: Clicking SCORM card...`);
 
 			// --- START TIMER RIGHT BEFORE CLICK ---
 			const start = Date.now();
@@ -165,17 +166,17 @@ export async function openScorm(driver) {
 			// Simple click with JS fallback (like original code)
 			try {
 				await scormBtn.click();
-				console.log(`✅ Regular click succeeded`);
+				logger.debug(`✅`);
 			} catch (clickError) {
-				console.log(`⚠️ Regular click failed, using JS click`);
+				logger.warn(`⚠️ Regular click failed, using JS click`);
 				await driver.executeScript("arguments[0].click();", scormBtn);
-				console.log(`✅ JS click succeeded`);
+				logger.debug(`✅`);
 			}
 
 			clicked = true;
 
 			// --- WAIT FOR SCORM PLAYER ---
-			console.log("⏳ Waiting for SCORM content to load...");
+			logger.info("⏳ Waiting for SCORM content to load...");
 
 			let scormLoaded = false;
 			try {
@@ -185,14 +186,14 @@ export async function openScorm(driver) {
 					errorPrefix: 'SCORM player element'
 				});
 				scormLoaded = true;
-				console.log("✅ SCORM player detected via iframe/embed");
+				logger.info("✅ SCORM player detected via iframe/embed");
 			} catch {}
 
 			if (!scormLoaded) {
 				const url = await driver.getCurrentUrl();
 				if (url.includes("card=")) {
 					scormLoaded = true;
-					console.log("✅ SCORM detected via URL change");
+					logger.info("✅ SCORM detected via URL change");
 				}
 			}
 
@@ -200,7 +201,7 @@ export async function openScorm(driver) {
 
 			// --- STOP TIMER ---
 			const seconds = Number(((Date.now() - start) / 1000).toFixed(3));
-			console.log(`⏱ SCORM load took: ${seconds}s`);
+			logger.info(`⏱ SCORM load took: ${seconds}s`);
 
 			await logCurrentState(driver, "Open SCORM");
 			await pauseForObservation(driver, "SCORM content loading", 3);
@@ -212,7 +213,7 @@ export async function openScorm(driver) {
 
 		} catch (error) {
 			if (error.message.includes('stale element')) {
-				console.log(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
+				logger.warn(`⚠️ Attempt ${attempt}: Stale element, retrying with fresh lookup...`);
 				await waitFor.networkIdle(driver, 500, 3000);
 				continue;
 			}
@@ -221,7 +222,7 @@ export async function openScorm(driver) {
 				throw new Error(`❌ Failed to click SCORM card after ${attempt} attempts: ${error.message}`);
 			}
 
-			console.log(`⚠️ Attempt ${attempt} failed: ${error.message}`);
+			logger.warn(`⚠️ Attempt ${attempt} failed: ${error.message}`);
 			await waitFor.networkIdle(driver, 1000, 3000);
 		}
 	}

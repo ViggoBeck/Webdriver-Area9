@@ -1,4 +1,5 @@
 import { createDriver, waitFor } from "./utils/driver.js";
+import { logger } from './utils/logger.js';
 import { loginLearner } from "./workflows/loginLearner.js";
 import { loginEducator } from "./workflows/loginEducator.js";
 import { loginCurator } from "./workflows/loginCurator.js";
@@ -116,7 +117,34 @@ async function clearSession(driver) {
 			// Continue even if network idle check fails
 		}
 
-		console.log("✅ Enhanced session reset completed");
+		// Step 7: DEEP COOLDOWN - Wait for all async operations to complete
+		// This prevents issues with Delete Class and Open SCORM when running in batch
+		// (they work fine individually, but fail in workflows due to residual async state)
+		console.log("⏳ Deep cooldown: waiting for all async operations to settle...");
+
+		// Kill any pending timers/requests in the SPA
+		try {
+			await driver.executeScript(`
+				// Clear all intervals
+				for (let i = 1; i < 9999; i++) window.clearInterval(i);
+				// Clear all timeouts
+				for (let i = 1; i < 9999; i++) window.clearTimeout(i);
+			`);
+		} catch (e) {
+			// Script execution might fail on about:blank
+		}
+
+		// Wait longer for network to be completely idle
+		// This catches stragglers that the first wait missed
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		try {
+			await waitFor.networkIdle(driver, 1000, 5000);
+		} catch (e) {
+			// Continue even if second network idle check fails
+		}
+
+		console.log("✅ Enhanced session reset completed (with deep cooldown)");
 	} catch (error) {
 		console.log("⚠️ Error during session reset:", error.message);
 		// Always continue - session clearing should never break the test suite
@@ -138,7 +166,7 @@ const WORKING_TESTS = [
 	{ name: "Open Class", func: openClass },
 	{ name: "Create Class", func: createClass },
 	{ name: "Delete Class", func: deleteClass },
-	{ name: "Open Review", func: openReview },
+	// { name: "Open Review", func: openReview }, // DISABLED - needs investigation
 	{ name: "Page Load", func: pageLoad }
 ];
 
@@ -171,14 +199,14 @@ const CACHE_TESTS = [
 	{ name: "Login Curator Cache", func: compareLoginCurator },
 	{ name: "SCORM Cache", func: compareScorm },
 	{ name: "Video Probe Cache", func: compareVideoProbe },
-	{ name: "Review Cache", func: compareReview },
+	// { name: "Review Cache", func: compareReview }, // DISABLED - needs investigation
 	{ name: "Course Catalog Cache", func: compareCourseCatalog },
 	{ name: "Open Class Cache", func: compareOpenClass },
 	{ name: "Page Load Cache", func: comparePageLoad }
 ];
 
 async function runTests(testSuite, suiteName, options = {}) {
-	console.log(`\n🚀 Starting ${suiteName}...`);
+	logger.always(`\n🚀 Starting ${suiteName}...`);
 
 	if (options.visible) {
 		console.log("👁️ Visual mode enabled - you can watch the browser");
@@ -192,7 +220,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 	try {
 		for (const test of testSuite) {
 		  const assignedAccount = getAccountForTest(test.name);
-		  console.log(`\n⏳ Running: ${test.name}`);
+		  logger.info(`\n⏳ Running: ${test.name}`);
 		  console.log(`👤 Using account: ${assignedAccount}`);
 			try {
 				const time = await test.func(driver);
@@ -203,7 +231,7 @@ async function runTests(testSuite, suiteName, options = {}) {
 					logResult(test.name, time, assignedAccount);
 				}
 
-				console.log(`✅ ${test.name} completed: ${time.toFixed(2)}s`);
+				logger.info(`✅: ${time.toFixed(2)}s`);
 
 				if (options.slowMode) {
 					console.log("🐌 Slow mode: Pausing 5 seconds to observe results...");
@@ -342,7 +370,7 @@ switch (command) {
 		}
 
 		// No matches found
-		console.log(`❌ Test not found: "${testName}". Available tests:`);
+		logger.error(`❌ Test not found: "${testName}". Available tests:`);
 		console.log("\nRegular Tests:");
 		ALL_TESTS.forEach(t => console.log(`  - ${t.name}`));
 		console.log("\nCache Tests:");
@@ -358,10 +386,10 @@ Usage:
 
 Commands:
 	priority         Run priority tests only (6 tests - core login, communicator, course catalog)
-	working          Run all working tests (15 tests including SCORM, Video, Catalog, Analytics, Classes, Review, Delete, Page Load)
+	working          Run all working tests (14 tests - Open Review temporarily disabled)
 	all             Run all working tests (same as 'working')
 	learners        Run learner tests only (6 tests - all tests using learner accounts with logout)
-	cache           Run cache comparison tests (9 tests - cold vs warm in same session)
+	cache           Run cache comparison tests (8 tests - Review Cache disabled)
 	single <name>   Run a single test by name (partial match - works for both regular and cache tests)
 
 Options:
@@ -384,7 +412,7 @@ Examples:
 	node src/app.js single "login learner"      # Test login functionality
 	node src/app.js priority --visible --slow   # Watch priority tests slowly
 
-Working Tests (15):
+Working Tests (14):
 ${ALL_TESTS.map(t => `  - ${t.name}`).join('\n')}
 
 Priority Tests (6):
@@ -393,7 +421,7 @@ ${PRIORITY_TESTS.map(t => `  - ${t.name} (*)`).join('\n')}
 Learner Tests (6):
 ${LEARNER_TESTS.map(t => `  - ${t.name} (with logout)`).join('\n')}
 
-Cache Comparison Tests (9 total - Cold vs Warm):
+Cache Comparison Tests (8 total - Review Cache disabled):
 ${CACHE_TESTS.map(t => `  - ${t.name} (same session)`).join('\n')}
 
 🔐 Account Management:

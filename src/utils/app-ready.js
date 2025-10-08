@@ -3,6 +3,7 @@
 import { By } from "selenium-webdriver";
 import { SmartWait } from './smart-wait.js';
 import { NetworkWait } from './network-wait.js';
+import { logger } from './logger.js';
 
 export class AppReadyState {
 	/**
@@ -10,7 +11,7 @@ export class AppReadyState {
 	 * Addresses issues with SCORM timing dependencies
 	 */
 	static async waitForSCORMReady(driver, timeout = 20000) {
-		console.log(`🎓 Waiting for SCORM content to be ready...`);
+		logger.debug(`🎓 Waiting for SCORM content to be ready...`);
 
 		try {
 			const result = await driver.executeAsyncScript(`
@@ -99,15 +100,15 @@ export class AppReadyState {
 			`);
 
 			if (result.success) {
-				console.log(`✅ SCORM ready via ${result.method} after ${result.elapsed}ms`);
+				logger.debug(`✅ SCORM ready via ${result.method} after ${result.elapsed}ms`);
 				return true;
 			} else {
-				console.log(`⚠️ SCORM ready timeout after ${result.elapsed}ms`);
+				logger.warn(`⚠️ SCORM ready timeout after ${result.elapsed}ms`);
 				return false;
 			}
 
 		} catch (error) {
-			console.log(`❌ SCORM ready check error: ${error.message}`);
+			logger.error(`❌ SCORM ready check error: ${error.message}`);
 			return false;
 		}
 	}
@@ -117,7 +118,7 @@ export class AppReadyState {
 	 * Addresses menu interaction failures in your current code
 	 */
 	static async waitForNavigationReady(driver, timeout = 10000) {
-		console.log(`🧭 Waiting for navigation to be ready...`);
+		logger.debug(`🧭 Waiting for navigation to be ready...`);
 
 		const menuSelectors = [
 			By.xpath("//button[@aria-label='Show Menu']"),
@@ -145,11 +146,11 @@ export class AppReadyState {
 					   parseFloat(computedStyle.transitionDuration) === 0;
 			`, menuElement);
 
-			console.log(`✅ Navigation ready and interactive`);
+			logger.debug(`✅ Navigation ready and interactive`);
 			return menuElement;
 
 		} catch (error) {
-			console.log(`❌ Navigation ready timeout: ${error.message}`);
+			logger.error(`❌ Navigation ready timeout: ${error.message}`);
 			throw error;
 		}
 	}
@@ -161,7 +162,7 @@ export class AppReadyState {
 	static async waitForDataTableReady(driver, tableSelector, options = {}) {
 		const { timeout = 15000, minRows = 1, errorPrefix = 'Data table' } = options;
 
-		console.log(`📊 Waiting for ${errorPrefix} to populate with data...`);
+		logger.debug(`📊 Waiting for ${errorPrefix} to populate with data...`);
 
 		// First wait for table container
 		await SmartWait.forElement(driver, By.css(tableSelector), {
@@ -203,7 +204,7 @@ export class AppReadyState {
 		}, timeout);
 
 		if (hasData) {
-			console.log(`✅ ${errorPrefix} populated with data`);
+			logger.debug(`✅ ${errorPrefix} populated with data`);
 			return true;
 		} else {
 			throw new Error(`${errorPrefix} failed to populate with data within ${timeout}ms`);
@@ -217,7 +218,7 @@ export class AppReadyState {
 	static async waitForFormReady(driver, formSelector, options = {}) {
 		const { timeout = 10000, requiredFields = [], errorPrefix = 'Form' } = options;
 
-		console.log(`📝 Waiting for ${errorPrefix} to be ready...`);
+		logger.debug(`📝 Waiting for ${errorPrefix} to be ready...`);
 
 		// Wait for form container
 		const form = await SmartWait.forElement(driver, By.css(formSelector), {
@@ -261,7 +262,7 @@ export class AppReadyState {
 			`);
 		}, timeout);
 
-		console.log(`✅ ${errorPrefix} ready for interaction`);
+		logger.debug(`✅ ${errorPrefix} ready for interaction`);
 		return form;
 	}
 
@@ -270,7 +271,7 @@ export class AppReadyState {
 	 * Specific to your class management workflows
 	 */
 	static async waitForClassOperationComplete(driver, operationType = 'create', className = 'Webdriver', timeout = 15000) {
-		console.log(`🎓 Waiting for class ${operationType} operation to complete...`);
+		logger.debug(`🎓 Waiting for class ${operationType} operation to complete...`);
 
 		const startTime = Date.now();
 
@@ -301,7 +302,7 @@ export class AppReadyState {
 					return elements.length > 0;
 				}, Math.min(timeout, 8000));
 
-				console.log(`✅ Class ${operationType} completion detected`);
+				logger.debug(`✅ Class ${operationType} completion detected`);
 				operationComplete = true;
 				break;
 
@@ -314,7 +315,7 @@ export class AppReadyState {
 		if (!operationComplete) {
 			const currentUrl = await driver.getCurrentUrl();
 			if (currentUrl.includes('class') || currentUrl.includes('dashboard')) {
-				console.log(`✅ URL indicates class ${operationType} completed`);
+				logger.debug(`✅ URL indicates class ${operationType} completed`);
 				operationComplete = true;
 			} else {
 				// Final fallback: ensure some time has passed and network is idle
@@ -322,7 +323,7 @@ export class AppReadyState {
 				if (elapsed < 3000) {
 					await SmartWait.sleep(3000 - elapsed);
 				}
-				console.log(`✅ Class ${operationType} assumed complete (fallback)`);
+				logger.debug(`✅ Class ${operationType} assumed complete (fallback)`);
 				operationComplete = true;
 			}
 		}
@@ -335,7 +336,7 @@ export class AppReadyState {
 	 * Addresses login verification issues in your current code
 	 */
 	static async waitForLoginComplete(driver, userType = 'learner', timeout = 15000) {
-		console.log(`🔐 Waiting for ${userType} login to complete...`);
+		logger.debug(`🔐 Waiting for ${userType} login to complete...`);
 
 		const loginSuccessSelectors = {
 			learner: [
@@ -365,7 +366,7 @@ export class AppReadyState {
 				return loginForms.length === 0;
 			}, Math.min(timeout, 8000));
 
-			console.log(`✅ Login form disappeared`);
+			logger.debug(`✅ Login form disappeared`);
 
 			// Then wait for success indicators
 			for (const selector of selectors) {
@@ -376,7 +377,7 @@ export class AppReadyState {
 						errorPrefix: `${userType} login success indicator`
 					});
 
-					console.log(`✅ ${userType} login success confirmed`);
+					logger.debug(`✅ ${userType} login success confirmed`);
 					return true;
 
 				} catch (error) {
@@ -384,11 +385,11 @@ export class AppReadyState {
 				}
 			}
 
-			console.log(`⚠️ Login form disappeared but success indicators not found - assuming success`);
+			logger.warn(`⚠️ Login form disappeared but success indicators not found - assuming success`);
 			return true;
 
 		} catch (error) {
-			console.log(`❌ Login completion timeout: ${error.message}`);
+			logger.error(`❌ Login completion timeout: ${error.message}`);
 			throw new Error(`${userType} login failed to complete within ${timeout}ms`);
 		}
 	}
@@ -398,7 +399,7 @@ export class AppReadyState {
 	 * Addresses timing issues with class content rendering
 	 */
 	static async waitForClassContentReady(driver, timeout = 15000) {
-		console.log(`📊 Waiting for class content to be fully loaded...`);
+		logger.debug(`📊 Waiting for class content to be fully loaded...`);
 
 		const startTime = Date.now();
 
@@ -413,7 +414,7 @@ export class AppReadyState {
 				errorPrefix: 'Class content (nativeWidget)'
 			});
 
-			console.log(`✅ Class content detected and loaded`);
+			logger.debug(`✅ Class content detected and loaded`);
 			return true;
 
 		} catch (error) {
@@ -431,7 +432,7 @@ export class AppReadyState {
 						errorPrefix: 'Class content indicator'
 					});
 
-					console.log(`✅ Class content detected via fallback`);
+					logger.debug(`✅ Class content detected via fallback`);
 					return true;
 
 				} catch (error) {
@@ -447,7 +448,7 @@ export class AppReadyState {
 			                   !currentUrl.includes('/educator');
 
 			if (onClassPage) {
-				console.log(`✅ URL indicates class opened (${currentUrl})`);
+				logger.debug(`✅ URL indicates class opened (${currentUrl})`);
 				return true;
 			}
 
